@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebWynk — Invoice Generator</title>
+  <link rel="icon" href="assets/webwynk-logo.webp">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- EDITOR PANEL (Left Side)                    -->
+  <!-- ═══════════════════════════════════════════ -->
+  <aside class="editor" id="editorPanel">
+
+    <!-- Editor Header -->
+    <div class="editor-header">
+      <img src="assets/webwynk-logo.webp" alt="WebWynk Logo" class="editor-logo">
+      <div>
+        <h1 class="editor-title">Invoice Generator</h1>
+        <p class="editor-subtitle">
+          <a href="index.html" style="color:var(--color-secondary); font-weight:600; text-decoration:none;">← Back to Proposal</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="editor-body" id="editorBody">
+
+      <!-- ── Section: Invoice Info ── -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-icon">📋</span>
+          <h3>Invoice Info</h3>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="invoiceNumber">Invoice Number</label>
+            <input type="text" id="invoiceNumber" placeholder="e.g. INV-001">
+          </div>
+          <div class="form-group">
+            <label for="invoiceDate">Invoice Date</label>
+            <input type="date" id="invoiceDate">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section: Client Details ── -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-icon">👤</span>
+          <h3>Billed To (Client)</h3>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="clientName">Client Name <span class="required">*</span></label>
+            <input type="text" id="clientName" placeholder="Full name" required>
+          </div>
+          <div class="form-group">
+            <label for="clientCompany">Company Name</label>
+            <input type="text" id="clientCompany" placeholder="Company / Business name">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="clientEmail">Email</label>
+            <input type="email" id="clientEmail" placeholder="client@example.com">
+          </div>
+          <div class="form-group">
+            <label for="clientPhone">Phone</label>
+            <input type="tel" id="clientPhone" placeholder="+91 XXXXX XXXXX">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="clientAddress">Address</label>
+          <input type="text" id="clientAddress" placeholder="City, State, Country">
+        </div>
+      </div>
+
+      <!-- ── Section: Services & Pricing ── -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-icon">💰</span>
+          <h3>Services & Pricing</h3>
+        </div>
+
+        <!-- Region Tab Toggle -->
+        <div class="tab-toggle" id="regionToggle">
+          <button type="button" class="tab-btn active" data-region="india">
+            🇮🇳 India (₹)
+          </button>
+          <button type="button" class="tab-btn" data-region="worldwide">
+            🌍 Worldwide ($)
+          </button>
+        </div>
+
+        <div class="service-header" style="margin-bottom:10px;">
+          <label>Line Items</label>
+        </div>
+        <div id="serviceRows">
+          <!-- Default service rows injected by JS -->
+        </div>
+        <button type="button" class="btn-add" id="addServiceRow" style="margin-bottom:20px;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add Service
+        </button>
+
+        <hr style="border:none; border-top:1px dashed var(--color-border); margin-bottom:20px;">
+
+        <div class="milestone-header">
+          <label>Payment Milestones (Optional)</label>
+        </div>
+        <div id="milestoneRows">
+          <!-- Default milestone rows injected by JS -->
+        </div>
+        <button type="button" class="btn-add" id="addMilestone" style="margin-bottom:20px;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add Milestone
+        </button>
+
+        <hr style="border:none; border-top:1px dashed var(--color-border); margin-bottom:20px;">
+
+        <div class="service-header" style="margin-bottom:10px;">
+          <label>Payment Received</label>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="paymentReceived">Amount Received</label>
+            <input type="number" id="paymentReceived" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label for="paymentReceivedDate">Date Received</label>
+            <input type="date" id="paymentReceivedDate">
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- end editor-body -->
+
+    <!-- Sticky Print Button -->
+    <div class="editor-footer">
+      <button type="button" class="btn-print" id="printBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print Invoice
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PREVIEW PANEL (Right Side)                  -->
+  <!-- ═══════════════════════════════════════════ -->
+  <main class="preview" id="previewPanel">
+    <div class="proposal-doc invoice-doc" id="invoiceDoc">
+
+      <div class="print-page invoice-page">
+        <!-- Gradient Accent Bar -->
+        <div class="proposal-accent-bar"></div>
+
+        <div class="print-page-header">
+          <img src="assets/webwynk-logo.webp" alt="WebWynk" class="print-ph-logo">
+          <span class="print-ph-tagline">Your Partner in Digital Success</span>
+        </div>
+
+        <!-- ── SaaS Invoice Header ── -->
+        <header class="invoice-saas-header">
+          <div class="invoice-saas-title-box">
+            <h1 class="invoice-saas-title">INVOICE</h1>
+            <div class="invoice-saas-meta">
+              <span>Invoice #: <strong id="previewInvoiceNum">—</strong></span>
+              <span>Date: <strong id="previewInvoiceDate">—</strong></span>
+            </div>
+          </div>
+          <div class="invoice-saas-balance">
+            <span class="balance-label">Balance Due</span>
+            <strong class="balance-amount" id="previewBalanceDue">₹0</strong>
+          </div>
+        </header>
+
+        <!-- ── Bill To / From ── -->
+        <section class="invoice-saas-parties">
+          <div class="party-box bill-to">
+            <span class="party-label">Billed To:</span>
+            <h4 class="party-name" id="previewClientName">—</h4>
+            <p class="party-company" id="previewClientCompany"></p>
+            <p class="party-detail" id="previewClientAddress"></p>
+            <p class="party-detail" id="previewClientEmail">—</p>
+            <p class="party-detail" id="previewClientPhone">—</p>
+          </div>
+          <div class="party-box bill-from">
+            <span class="party-label">From:</span>
+            <h4 class="party-name">WebWynk</h4>
+            <p class="party-company">Digital Marketing Agency</p>
+            <p class="party-detail">Sector V, Kolkata, India</p>
+            <p class="party-detail">contact@webwynk.com</p>
+            <p class="party-detail">+91 9083895364 / +91 6295666768</p>
+          </div>
+        </section>
+
+        <!-- ── Services & Summary ── -->
+        <section class="proposal-section" style="padding-top:0; padding-bottom:16px;">
+          <table class="invoice-saas-table">
+            <thead>
+              <tr>
+                <th class="col-desc">Service Description</th>
+                <th class="col-price">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="previewInvoiceBody"></tbody>
+          </table>
+          
+          <div class="invoice-saas-summary">
+            <div class="summary-row">
+              <span class="summary-label">Subtotal</span>
+              <span class="summary-val" id="previewSubtotal">₹0</span>
+            </div>
+            <div class="summary-row received-row" id="previewReceivedRow" style="display:none;">
+              <span class="summary-label">Payment Received <small id="previewReceivedDateLabel" style="font-weight:normal; opacity:0.7;"></small></span>
+              <span class="summary-val" id="previewReceived">₹0</span>
+            </div>
+            <div class="summary-row balance-row">
+              <span class="summary-label">Balance Due</span>
+              <span class="summary-val" id="previewSummaryBalance">₹0</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Milestones (Optional) ── -->
+        <section class="proposal-section" id="milestonesSection" style="padding-top:0; padding-bottom:16px;">
+          <div class="section-title-bar"><h2 style="font-size:1.05rem;">Payment Milestones</h2></div>
+          <div class="pricing-milestones" id="previewMilestones"></div>
+        </section>
+
+        <!-- ── Payment Details ── -->
+        <section class="proposal-section" style="padding-top:0;">
+          <div class="section-title-bar"><h2 style="font-size:1.05rem;">Payment Methods</h2></div>
+          <div id="paymentIndia" class="payment-region">
+            <div class="payment-badge india">Bank Transfer (INR)</div>
+            <div class="payment-details-grid">
+              <div class="payment-row"><span class="payment-key">Bank Name</span><span class="payment-val">State Bank of India</span></div>
+              <div class="payment-row"><span class="payment-key">Account Holder</span><span class="payment-val">Hasanur Jaman</span></div>
+              <div class="payment-row"><span class="payment-key">Account Number</span><span class="payment-val">43467519027</span></div>
+              <div class="payment-row"><span class="payment-key">IFSC Code</span><span class="payment-val">SBIN0011371</span></div>
+              <div class="payment-row"><span class="payment-key">Account Type</span><span class="payment-val">Savings</span></div>
+            </div>
+          </div>
+          <div id="paymentWorldwide" class="payment-region" style="display:none;">
+            <div class="payment-cards-row">
+              <div class="payment-method-card"><img src="assets/paypal-logo.webp" alt="PayPal" class="payment-method-logo"><p class="payment-link-label">Payment Link</p><a class="payment-link" href="https://webwynk.com/payment/" target="_blank">webwynk.com/payment/</a></div>
+              <div class="payment-method-card"><img src="assets/wise-logo.webp" alt="Wise" class="payment-method-logo"><p class="payment-link-label">Payment Link</p><a class="payment-link" href="https://wise.com/pay/business/hasanurjaman" target="_blank">wise.com/pay/business/hasanurjaman</a></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Footer ── -->
+        <footer class="proposal-footer" style="margin-top:auto; padding-top:20px;">
+          <div class="footer-divider"></div>
+          <div class="footer-content">
+            <div class="footer-brand"><img src="assets/webwynk-logo.webp" alt="WebWynk" class="footer-logo"></div>
+            <div class="footer-info">
+              <p><a href="mailto:contact@webwynk.com">contact@webwynk.com</a> &nbsp;·&nbsp; <a href="https://wa.me/919083895364">+91 9083895364</a> / <a href="tel:+916295666768">+91 6295666768</a></p>
+              <p><a href="https://webwynk.com" target="_blank">webwynk.com</a> &nbsp;·&nbsp; Sector V, Kolkata, India</p>
+            </div>
+            <p class="footer-thanks">Thank you for your business! 🚀</p>
+          </div>
+        </footer>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script src="invoice.js"></script>
+</body>
+</html>
