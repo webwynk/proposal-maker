@@ -130,6 +130,21 @@ app.post('/api/invoices', authenticateToken, requireAdmin, async (req, res) => {
   res.json(newInvoice);
 });
 
+app.get('/api/invoices/:id', authenticateToken, async (req, res) => {
+  const { data: invoice, error } = await supabase.from('invoices').select('*, users!invoices_client_id_fkey(name, company, email, phone)').eq('id', req.params.id).single();
+  if (error || !invoice) return res.status(404).json({ error: 'Invoice not found' });
+  if (req.user.role === 'client' && invoice.client_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+  
+  res.json({
+    ...invoice,
+    client_name: invoice.users?.name,
+    client_company: invoice.users?.company,
+    client_email: invoice.users?.email,
+    client_phone: invoice.users?.phone,
+    users: undefined
+  });
+});
+
 app.put('/api/invoices/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { invoice_number, client_id, invoice_date, services, milestones, payment_received, payment_received_date, currency, status, notes } = req.body;
