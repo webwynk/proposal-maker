@@ -3,7 +3,22 @@
    ═══════════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ── State ──
+  // ── Auth & State ──
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'index.html';
+
+  async function apiCall(endpoint, options = {}) {
+    const res = await fetch(endpoint, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    });
+    return res.json();
+  }
+
+  let clients = [];
   let activeRegion = 'india'; // 'india' | 'worldwide'
   let milestoneCounter = 0;
   let serviceCounter = 0;
@@ -21,17 +36,102 @@ document.addEventListener('DOMContentLoaded', () => {
     $('invoiceDate').value = formatDateInput(today);
     updatePreviewText('previewInvoiceDate', formatDateDisplay(today));
 
-    // Add one default service row
-    addServiceRow();
+    // Initial preview update
+    updateMilestonePreview();
+    updateInvoicePreview();
 
     // Bind all events
     bindInputEvents();
     bindTabEvents();
     bindPrintButton();
+    bindSaveButton();
 
-    // Initial preview update
-    updateMilestonePreview();
-    updateInvoicePreview();
+    // Check for ID in URL (Edit/View mode)
+    const urlParams = new URLSearchParams(window.location.search);
+    const invoiceId = urlParams.get('id');
+    const isViewOnly = urlParams.get('view') === 'true';
+
+    if (isViewOnly) {
+      document.body.classList.add('view-only');
+    }
+
+    if (invoiceId) {
+      loadInvoice(invoiceId);
+    } else {
+      // Add one default service row (only if new)
+      addServiceRow();
+    }
+
+    // Load clients
+    loadClients();
+  }
+
+  async function loadInvoice(id) {
+    try {
+      const inv = await apiCall('/api/invoices/' + id);
+      if (inv.error) return alert('Invoice not found');
+
+      // Populate basic fields
+      $('invoiceNumber').value = inv.invoice_number || '';
+      $('invoiceDate').value = inv.invoice_date || '';
+      $('clientName').value = inv.client_name || '';
+      $('clientCompany').value = inv.client_company || '';
+      $('clientEmail').value = inv.client_email || '';
+      $('clientPhone').value = inv.client_phone || '';
+      $('clientAddress').value = inv.client_address || '';
+      $('paymentReceived').value = inv.payment_received || 0;
+      $('paymentReceivedDate').value = inv.payment_received_date || '';
+      activeRegion = inv.currency === 'USD' ? 'worldwide' : 'india';
+
+      // Update region tabs
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      tabBtns.forEach(btn => {
+        if (btn.dataset.region === activeRegion) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+      onRegionChange();
+
+      // Clear default rows
+      $('serviceRows').innerHTML = '';
+      $('milestoneRows').innerHTML = '';
+
+      // Populate dynamic rows
+      if (inv.services) inv.services.forEach(s => addServiceRow(s.name, s.price));
+      if (inv.milestones) inv.milestones.forEach(m => addMilestoneRow(m.label, m.amount));
+
+      // Trigger all input events to refresh preview
+      document.querySelectorAll('.editor input, .editor textarea, .editor select').forEach(el => {
+        el.dispatchEvent(new Event('input'));
+      });
+
+    } catch (err) {
+      console.error('Failed to load invoice:', err);
+    }
+  }
+
+  async function loadClients() {
+    clients = await apiCall('/api/clients');
+    const select = $('selectClient');
+    if(select) {
+      select.innerHTML = '<option value="">-- Or enter manually below --</option>' + 
+        clients.filter(c => c.is_active).map(c => `<option value="${c.id}">${c.name} - ${c.company}</option>`).join('');
+      
+      select.addEventListener('change', (e) => {
+        const client = clients.find(c => c.id == e.target.value);
+        if (client) {
+          $('clientName').value = client.name;
+          $('clientCompany').value = client.company;
+          $('clientEmail').value = client.email;
+          $('clientPhone').value = client.phone || '';
+          $('clientAddress').value = client.address || '';
+          
+          ['clientName', 'clientCompany', 'clientEmail', 'clientPhone', 'clientAddress'].forEach(id => {
+            const el = $(id);
+            if (el) el.dispatchEvent(new Event('input'));
+          });
+        }
+      });
+    }
   }
 
   // ═══════════════════════════════════════
@@ -320,6 +420,82 @@ document.addEventListener('DOMContentLoaded', () => {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Print Invoice
       `;
+    });
+  }
+
+  function bindSaveButton() {
+    const saveBtn = $('saveBtn');
+    if (!saveBtn) return;
+
+    saveBtn.addEventListener('click', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const invoiceId = urlParams.get('id');
+
+      const data = {
+        invoice_number: $('invoiceNumber').value,
+        invoice_date: $('invoiceDate').value,
+        client_name: $('clientName').value,
+        client_company: $('clientCompany').value,
+        client_email: $('clientEmail').value,
+        client_phone: $('clientPhone').value,
+        client_address: $('clientAddress').value,
+        payment_received: parseFloat($('paymentReceived').value) || 0,
+        payment_received_date: $('paymentReceivedDate').value,
+        currency: activeRegion === 'india' ? 'INR' : 'USD',
+        status: 'published',
+        services: [],
+        milestones: []
+      };
+
+      // Collect services
+      document.querySelectorAll('.service-row-item').forEach(row => {
+        data.services.push({
+          name: row.querySelector('.service-name-input').value,
+          price: parseFloat(row.querySelector('.service-price-input').value) || 0
+        });
+      });
+
+      // Collect milestones
+      document.querySelectorAll('.milestone-row-item').forEach(row => {
+        data.milestones.push({
+          label: row.querySelector('.milestone-label-input').value,
+          amount: parseFloat(row.querySelector('.milestone-amount-input').value) || 0
+        });
+      });
+
+      // Find client ID by email
+      const client = clients.find(c => c.email === data.client_email);
+      if (!client) return alert('Please select an existing client or ensure the email matches a registered client.');
+      data.client_id = client.id;
+
+      const btn = $('saveBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        const endpoint = invoiceId ? `/api/invoices/${invoiceId}` : '/api/invoices';
+        const method = invoiceId ? 'PUT' : 'POST';
+
+        const result = await apiCall(endpoint, {
+          method: method,
+          body: JSON.stringify(data)
+        });
+
+        if (result.error) {
+          alert('Error: ' + result.error);
+        } else {
+          alert('Invoice saved successfully!');
+          if (!invoiceId) window.location.href = `invoice.html?id=${result.id}`;
+        }
+      } catch (err) {
+        alert('Failed to save invoice');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Invoice
+        `;
+      }
     });
   }
 

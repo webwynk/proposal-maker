@@ -3,7 +3,22 @@
    ═══════════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ── State ──
+  // ── Auth & State ──
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'index.html';
+
+  async function apiCall(endpoint, options = {}) {
+    const res = await fetch(endpoint, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    });
+    return res.json();
+  }
+
+  let clients = [];
   let activeRegion = 'india'; // 'india' | 'worldwide'
   let scopeCounter = 0;
   let milestoneCounter = 0;
@@ -37,24 +52,111 @@ document.addEventListener('DOMContentLoaded', () => {
     $('proposalDate').value = formatDateInput(today);
     updatePreviewText('previewDate', formatDateDisplay(today));
 
-    // Add default scope rows
-    defaultScope.forEach(s => addScopeRow(s.item, s.desc));
-
-    // Add default milestone rows
-    defaultMilestones.forEach(m => addMilestoneRow(m.label, m.amount));
-
-    // Add one default service row
-    addServiceRow();
+    // Initial preview update
+    updateScopePreview();
+    updateMilestonePreview();
+    updateInvoicePreview();
 
     // Bind all events
     bindInputEvents();
     bindTabEvents();
     bindPrintButton();
+    bindSaveButton();
 
-    // Initial preview update
-    updateScopePreview();
-    updateMilestonePreview();
-    updateInvoicePreview();
+    // Check for ID in URL (Edit/View mode)
+    const urlParams = new URLSearchParams(window.location.search);
+    const proposalId = urlParams.get('id');
+    const isViewOnly = urlParams.get('view') === 'true';
+
+    if (isViewOnly) {
+      document.body.classList.add('view-only');
+    }
+
+    if (proposalId) {
+      loadProposal(proposalId);
+    } else {
+      // Default scope rows (only if new proposal)
+      defaultScope.forEach(s => addScopeRow(s.item, s.desc));
+      // Add default milestone rows
+      defaultMilestones.forEach(m => addMilestoneRow(m.label, m.amount));
+      // Add one default service row
+      addServiceRow();
+    }
+
+    // Load clients
+    loadClients();
+  }
+
+  async function loadProposal(id) {
+    try {
+      const p = await apiCall('/api/proposals/' + id);
+      if (p.error) return alert('Proposal not found');
+
+      // Populate basic fields
+      $('proposalNumber').value = p.proposal_number || '';
+      $('proposalDate').value = p.proposal_date || '';
+      $('clientName').value = p.client_name || '';
+      $('clientCompany').value = p.client_company || '';
+      $('clientEmail').value = p.client_email || '';
+      $('clientPhone').value = p.client_phone || '';
+      $('projectTitle').value = p.project_title || '';
+      $('projectOverview').value = p.project_overview || '';
+      $('growthBlueprint').value = p.growth_blueprint || '';
+      $('timelineDuration').value = p.timeline_duration || '';
+      $('startDate').value = p.start_date || '';
+      $('deliveryDate').value = p.delivery_date || '';
+      activeRegion = p.currency === 'USD' ? 'worldwide' : 'india';
+      
+      // Update region tabs
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      tabBtns.forEach(btn => {
+        if (btn.dataset.region === activeRegion) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+      onRegionChange();
+
+      // Clear default rows
+      $('scopeRows').innerHTML = '';
+      $('milestoneRows').innerHTML = '';
+      $('serviceRows').innerHTML = '';
+
+      // Populate dynamic rows
+      if (p.scope) p.scope.forEach(s => addScopeRow(s.item, s.desc));
+      if (p.milestones) p.milestones.forEach(m => addMilestoneRow(m.label, m.amount));
+      if (p.services) p.services.forEach(s => addServiceRow(s.name, s.price));
+
+      // Trigger all input events to refresh preview
+      document.querySelectorAll('.editor input, .editor textarea, .editor select').forEach(el => {
+        el.dispatchEvent(new Event('input'));
+      });
+
+    } catch (err) {
+      console.error('Failed to load proposal:', err);
+    }
+  }
+
+  async function loadClients() {
+    clients = await apiCall('/api/clients');
+    const select = $('selectClient');
+    if(select) {
+      select.innerHTML = '<option value="">-- Or enter manually below --</option>' + 
+        clients.filter(c => c.is_active).map(c => `<option value="${c.id}">${c.name} - ${c.company}</option>`).join('');
+      
+      select.addEventListener('change', (e) => {
+        const client = clients.find(c => c.id == e.target.value);
+        if (client) {
+          $('clientName').value = client.name;
+          $('clientCompany').value = client.company;
+          $('clientEmail').value = client.email;
+          $('clientPhone').value = client.phone || '';
+          
+          ['clientName', 'clientCompany', 'clientEmail', 'clientPhone'].forEach(id => {
+            const el = $(id);
+            if (el) el.dispatchEvent(new Event('input'));
+          });
+        }
+      });
+    }
   }
 
   // ═══════════════════════════════════════
@@ -365,6 +467,96 @@ document.addEventListener('DOMContentLoaded', () => {
   // ═══════════════════════════════════════
   // PRINT
   // ═══════════════════════════════════════
+
+  function bindActions() {
+    bindPrintButton();
+    bindSaveButton();
+  }
+
+  function bindSaveButton() {
+    $('saveBtn').addEventListener('click', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const proposalId = urlParams.get('id');
+
+      const data = {
+        proposal_number: $('proposalNumber').value,
+        proposal_date: $('proposalDate').value,
+        client_name: $('clientName').value,
+        client_company: $('clientCompany').value,
+        client_email: $('clientEmail').value,
+        client_phone: $('clientPhone').value,
+        project_title: $('projectTitle').value,
+        project_overview: $('projectOverview').value,
+        growth_blueprint: $('growthBlueprint').value,
+        timeline_duration: $('timelineDuration').value,
+        start_date: $('startDate').value,
+        delivery_date: $('deliveryDate').value,
+        currency: activeRegion === 'india' ? 'INR' : 'USD',
+        status: 'published',
+        scope: [],
+        services: [],
+        milestones: []
+      };
+
+      // Collect scope
+      document.querySelectorAll('.scope-row-item').forEach(row => {
+        data.scope.push({
+          item: row.querySelector('.scope-item-input').value,
+          desc: row.querySelector('.scope-desc-input').value
+        });
+      });
+
+      // Collect services
+      document.querySelectorAll('.service-row-item').forEach(row => {
+        data.services.push({
+          name: row.querySelector('.service-name-input').value,
+          price: parseFloat(row.querySelector('.service-price-input').value) || 0
+        });
+      });
+
+      // Collect milestones
+      document.querySelectorAll('.milestone-row-item').forEach(row => {
+        data.milestones.push({
+          label: row.querySelector('.milestone-label-input').value,
+          amount: parseFloat(row.querySelector('.milestone-amount-input').value) || 0
+        });
+      });
+
+      // Find client ID by email
+      const client = clients.find(c => c.email === data.client_email);
+      if (!client) return alert('Please select an existing client or ensure the email matches a registered client.');
+      data.client_id = client.id;
+
+      const btn = $('saveBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        const endpoint = proposalId ? `/api/proposals/${proposalId}` : '/api/proposals';
+        const method = proposalId ? 'PUT' : 'POST';
+
+        const result = await apiCall(endpoint, {
+          method: method,
+          body: JSON.stringify(data)
+        });
+
+        if (result.error) {
+          alert('Error: ' + result.error);
+        } else {
+          alert('Proposal saved successfully!');
+          if (!proposalId) window.location.href = `proposal.html?id=${result.id}`;
+        }
+      } catch (err) {
+        alert('Failed to save proposal');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Proposal
+        `;
+      }
+    });
+  }
 
   function bindPrintButton() {
     $('printBtn').addEventListener('click', async () => {

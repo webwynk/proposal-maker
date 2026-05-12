@@ -1,0 +1,358 @@
+:root {
+      --primary: #ff5028;
+      --secondary: #7864f0;
+      --bg: #f0f0ff;
+      --title: #21212d;
+      --body: #54595f;
+      --white: #ffffff;
+      --border: #e2e2f0;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+
+    .split-layout {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Left Image Side */
+    .image-side {
+      flex: 0 0 45%;
+      background: url('https://webwynk.com/wp-content/uploads/2026/02/webwynk-about-us-image.png.webp') no-repeat center center;
+      background-size: cover;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px;
+      color: white;
+    }
+
+    .image-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%);
+      z-index: 1;
+    }
+
+    .brand-logo {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: 'Bricolage Grotesque', serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .brand-logo img {
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .quote-container {
+      position: relative;
+      z-index: 2;
+      max-width: 80%;
+      margin-bottom: 20px;
+    }
+
+    .quote-text {
+      font-family: 'Bricolage Grotesque', serif;
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .quote-author {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .quote-role {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+
+    /* Right Form Side */
+    .form-side {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--white);
+      padding: 40px;
+      overflow-y: auto;
+    }
+
+    .form-wrapper {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-title {
+      font-family: 'Bricolage Grotesque', serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--title);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      font-size: 0.875rem;
+      color: var(--body);
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: #f4f4f9;
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 32px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--body);
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      background: var(--white);
+      color: var(--primary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    /* Form Fields */
+    .form-group {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      position: absolute;
+      top: 8px;
+      left: 16px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--body);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 24px 16px 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      color: var(--title);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--secondary);
+    }
+
+    /* Password Toggle */
+    .password-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      color: var(--body);
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .password-toggle:hover {
+      opacity: 1;
+    }
+
+    .password-toggle svg {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      margin-top: 8px;
+    }
+
+    .forgot-password {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--secondary);
+      text-decoration: none;
+    }
+
+    .forgot-password:hover {
+      text-decoration: underline;
+    }
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.8rem;
+      color: var(--body);
+    }
+
+    /* Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 24px;
+    }
+
+    .switch input { 
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--border);
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--secondary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      font-family: 'Bricolage Grotesque', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: white;
+      background: var(--secondary);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-login:hover {
+      background: #6050d8;
+    }
+
+    .btn-login:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      margin: 24px 0;
+      color: var(--body);
+      font-size: 0.75rem;
+      opacity: 0.5;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .divider:not(:empty)::before { margin-right: .5em; }
+    .divider:not(:empty)::after { margin-left: .5em; }
+
+    .help-text {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--body);
+      margin-top: 16px;
+    }
+
+    .help-text a {
+      color: var(--secondary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .error-message {
+      background: #fff0f0;
+      border: 1px solid #ffcccc;
+      color: #e74c3c;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      margin-bottom: 20px;
+      display: none;
+    }
+    
+    .error-message.show {
+      display: block;
+    }
+
+    @media (max-width: 900px) {
+      .image-side { display: none; }
+    }

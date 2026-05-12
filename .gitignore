@@ -1,10 +1,59 @@
-# OS files
-.DS_Store
-Thumbs.db
+# ═══════════════════════════════════════════════════════
+# WebWynk CRM - .gitignore
+# ═══════════════════════════════════════════════════════
 
-# Gemini/IDE files
-.gemini/
+# ── Node.js ──
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ── Database ──
+*.db
+*.sqlite
+webwynk.db
+
+# ── Environment ──
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# ── IDE & Editor ──
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
 
-# Local logs
+# ── OS ──
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── Logs ──
 *.log
+logs/
+
+# ── Build Output ──
+dist/
+build/
+out/
+
+# ── Dependencies (if using) ──
+# Dependencies installed via package manager already excluded via node_modules
+
+# ── Temp Files ──
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ── Cache ──
+.cache/
+.npm/
+.eslintcache

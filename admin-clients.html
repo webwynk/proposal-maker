@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebWynk CRM - Admin Dashboard</title>
+  <link rel="icon" href="assets/webwynk-logo.webp">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Add/Edit Client Modal -->
+  <div class="modal" id="clientModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="clientModalTitle">Add Client</h2>
+        <button class="modal-close" onclick="closeModal('clientModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="clientForm">
+          <input type="hidden" id="clientId">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="clientName" required>
+            </div>
+            <div class="form-group">
+              <label>Company Name *</label>
+              <input type="text" id="clientCompany" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email" id="clientEmail" required>
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="tel" id="clientPhone">
+            </div>
+          </div>
+          <div class="form-group" id="passwordGroup">
+            <label>Password * <span style="font-weight:400;opacity:0.6">(For client login)</span></label>
+            <input type="text" id="clientPassword" placeholder="Auto-generated if empty">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="clientStatus">
+              <option value="1">Active</option>
+              <option value="0">Inactive</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('clientModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveClient()">Save Client</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoice Editor Modal -->
+  <div class="modal" id="invoiceModal">
+    <div class="modal-content" style="max-width:1200px;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="invoiceModalTitle">Create Invoice</h2>
+        <button class="modal-close" onclick="closeModal('invoiceModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:0;">
+        <div class="two-panel">
+          <div class="editor-panel">
+            <form id="invoiceForm">
+              <input type="hidden" id="invoiceId">
+              <div class="form-group">
+                <label>Select Client *</label>
+                <select id="invoiceClient" required></select>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Invoice Number *</label>
+                  <input type="text" id="invoiceNumber" placeholder="INV-001" required>
+                </div>
+                <div class="form-group">
+                  <label>Invoice Date</label>
+                  <input type="date" id="invoiceDate">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Currency</label>
+                <select id="invoiceCurrency">
+                  <option value="INR">🇮🇳 India (₹)</option>
+                  <option value="USD">🌍 Worldwide ($)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="invoiceStatus">
+                  <option value="draft">Draft</option>
+                  <option value="sent">Sent</option>
+                  <option value="paid">Paid</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Services</label>
+                <div id="invoiceServices"></div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="addInvoiceService()" style="margin-top:8px;">+ Add Service</button>
+              </div>
+              <div class="form-group">
+                <label>Milestones (Optional)</label>
+                <div id="invoiceMilestones"></div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="addInvoiceMilestone()" style="margin-top:8px;">+ Add Milestone</button>
+              </div>
+              <div class="form-group">
+                <label>Payment Received</label>
+                <input type="number" id="paymentReceived" placeholder="0" min="0">
+              </div>
+              <div class="form-group">
+                <label>Notes</label>
+                <textarea id="invoiceNotes" rows="2" placeholder="Additional notes..."></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="preview-panel">
+            <div class="preview-doc" id="invoicePreviewDoc">
+              <div style="padding:32px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                  <img src="assets/webwynk-logo.webp" style="height:36px;">
+                  <span style="color:#54595f;">Your Partner in Digital Success</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px;">
+                  <div>
+                    <h2 style="font-family:'Bricolage Grotesque',serif; font-size:1.5rem; margin:0; color:#21212d;">INVOICE</h2>
+                    <p style="color:#54595f; margin-top:4px;"># <span id="prevInvoiceNum">—</span></p>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-size:0.75rem; color:#54595f; opacity:0.7;">Balance Due</div>
+                    <div style="font-family:'Bricolage Grotesque',serif; font-size:1.5rem; font-weight:700; color:#21212d;" id="prevBalance">₹0</div>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
+                  <div>
+                    <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; color:#7864f0; margin-bottom:8px;">Billed To:</div>
+                    <div style="font-weight:600; color:#21212d;" id="prevClientName">—</div>
+                    <div style="color:#54595f; font-size:0.9rem;" id="prevClientCompany">—</div>
+                    <div style="color:#54595f; font-size:0.85rem;" id="prevClientEmail">—</div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; color:#ff5028; margin-bottom:8px;">From:</div>
+                    <div style="font-weight:600; color:#21212d;">WebWynk</div>
+                    <div style="color:#54595f; font-size:0.85rem;">contact@webwynk.com</div>
+                  </div>
+                </div>
+                <table style="width:100%; border-collapse:collapse; margin-bottom:24px;">
+                  <thead>
+                    <tr style="background:#f8f8ff;">
+                      <th style="padding:12px; text-align:left; font-size:0.7rem; font-weight:700; text-transform:uppercase; color:#54595f;">Service</th>
+                      <th style="padding:12px; text-align:right; font-size:0.7rem; font-weight:700; text-transform:uppercase; color:#54595f;">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="prevServices"></tbody>
+                </table>
+                <div style="display:flex; justify-content:flex-end; gap:32px; padding:16px; background:#f8f8ff; border-radius:8px;">
+                  <div>
+                    <div style="font-size:0.8rem; color:#54595f;">Subtotal</div>
+                    <div style="font-size:1.1rem; font-weight:700; color:#21212d;" id="prevSubtotal">₹0</div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.8rem; color:#22c55e;">Received</div>
+                    <div style="font-size:1.1rem; font-weight:700; color:#22c55e;" id="prevReceived">₹0</div>
+                  </div>
+                  <div style="border-left:2px solid #e2e2f0; padding-left:32px;">
+                    <div style="font-size:0.8rem; color:#54595f;">Balance Due</div>
+                    <div style="font-size:1.3rem; font-weight:700; color:#21212d;" id="prevBalanceFinal">₹0</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('invoiceModal')">Cancel</button>
+        <button class="btn btn-secondary" onclick="saveInvoice('save')">Save</button>
+        <button class="btn btn-primary" onclick="saveInvoice('print')">Save & Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Modal -->
+  <div class="modal" id="projectModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="projectModalTitle">Add Project</h2>
+        <button class="modal-close" onclick="closeModal('projectModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="projectForm">
+          <input type="hidden" id="projectId">
+          <div class="form-group">
+            <label>Select Client *</label>
+            <select id="projectClient" required></select>
+          </div>
+          <div class="form-group">
+            <label>Project Name *</label>
+            <input type="text" id="projectName" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select id="projectStatus">
+                <option value="discovery">Discovery</option>
+                <option value="design">Design</option>
+                <option value="development">Development</option>
+                <option value="testing">Testing</option>
+                <option value="launched">Launched</option>
+                <option value="on_hold">On Hold</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Progress (%)</label>
+              <input type="number" id="projectProgress" min="0" max="100" value="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea id="projectNotes" rows="3" placeholder="Project details..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('projectModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+      </div>
+    </div>
+  </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="assets/webwynk-logo.webp" alt="WebWynk" class="sidebar-logo">
+        <div class="sidebar-title" style="margin-top:8px;">CRM Dashboard</div>
+      </div>
+      <nav>
+        <a href="admin.html" class="nav-item" data-page="dashboard">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a href="admin-clients.html" class="nav-item active" data-page="clients">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Clients
+        </a>
+        <a href="admin-invoices.html" class="nav-item" data-page="invoices">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Invoices
+        </a>
+        <a href="admin-proposals.html" class="nav-item" data-page="proposals">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
+          Proposals
+        </a>
+        <a href="admin-projects.html" class="nav-item" data-page="projects">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Projects
+        </a>
+      </nav>
+      <div class="user-info">
+        <div class="user-name" id="userName">Admin</div>
+        <div class="user-role">Administrator</div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Clients Page -->
+      <div id="page-clients">
+        <div class="page-header">
+          <h1 class="page-title">Clients</h1>
+          <button class="btn btn-primary" onclick="showAddClientModal()">+ Add Client</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Company</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clientsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      </main>
+  </div>
+
+  <script src="js/admin.js"></script>
+
+</body>
+</html>
