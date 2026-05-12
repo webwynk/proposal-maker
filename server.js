@@ -413,7 +413,7 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) =>
       pendingInvoices.forEach(inv => {
         let servicesTotal = 0;
         if (inv.services && Array.isArray(inv.services)) {
-          inv.services.forEach(s => { if (s && s.value && !isNaN(s.value)) servicesTotal += parseFloat(s.value); });
+          inv.services.forEach(s => { if (s && s.price && !isNaN(s.price)) servicesTotal += parseFloat(s.price); });
         }
         totalRevenue += (servicesTotal - (inv.payment_received || 0));
       });
