@@ -1,4 +1,4 @@
-
+document.addEventListener('DOMContentLoaded', () => {
     const API_URL = '';
     let clients = [];
     let invoices = [];
@@ -380,8 +380,8 @@
     }
 
     function calculateTotal(services) {
-      if (!services) return 0;
-      return services.reduce((sum, s) => sum + (s.price || 0), 0);
+      const sArr = typeof services === 'string' ? JSON.parse(services || '[]') : (services || []);
+      return sArr.reduce((sum, s) => sum + (s.price || 0), 0);
     }
 
     function closeModal(id) {
@@ -400,4 +400,5 @@
     } else {
       loadDashboard();
     }
+});
   

@@ -1,7 +1,6 @@
-
+document.addEventListener('DOMContentLoaded', () => {
     const API_URL = '';
     
-
     let invoices = [];
     let proposals = [];
     let projects = [];
@@ -303,4 +302,5 @@
     } else {
       loadDashboard();
     }
+});
   
