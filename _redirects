@@ -1,0 +1,5 @@
+# Netlify Redirects File
+# This tells Netlify to forward all API requests to your Vercel backend.
+# Replace the URL below with your actual Vercel deployment URL once you deploy it!
+
+/api/*  https://your-backend-project.vercel.app/api/:splat  200!
