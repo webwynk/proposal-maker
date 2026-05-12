@@ -41,9 +41,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let statusChartInstance = null;
 
+    function showLoading(elementId, colspan = 6) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.innerHTML = `<tr><td colspan="${colspan}" class="loading-row"><div class="spinner"></div><span class="loading-text">Fetching latest data...</span></td></tr>`;
+      }
+    }
+
     // Dashboard
     async function loadDashboard() {
       const stats = await apiCall('/api/admin/stats');
+      const statIds = ['statClients', 'statInvoices', 'statProjects', 'statRevenue'];
+      statIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && el.textContent === '...') el.textContent = '...'; // Keep dots if loading
+      });
+
       document.getElementById('statClients').textContent = stats.clientCount;
       document.getElementById('statInvoices').textContent = stats.invoiceCount;
       document.getElementById('statProjects').textContent = stats.projectCount;
@@ -88,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clients
     async function loadClients() {
+      showLoading('clientsTable', 6);
       clients = await apiCall('/api/clients');
       const tbody = document.getElementById('clientsTable');
       tbody.innerHTML = clients.map(c => `
@@ -164,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Invoices
     async function loadInvoices() {
+      showLoading('invoicesTable', 6);
       invoices = await apiCall('/api/invoices');
       const tbody = document.getElementById('invoicesTable');
       tbody.innerHTML = invoices.map(inv => `
@@ -219,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Projects
     async function loadProjects() {
+      showLoading('projectsTable', 6);
       projects = await apiCall('/api/projects');
       const tbody = document.getElementById('projectsTable');
       tbody.innerHTML = projects.map(p => `
@@ -348,6 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Proposals (placeholder - same structure as invoices)
     async function loadProposals() {
+      showLoading('proposalsTable', 6);
       proposals = await apiCall('/api/proposals');
       const tbody = document.getElementById('proposalsTable');
       tbody.innerHTML = proposals.map(p => `

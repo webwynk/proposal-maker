@@ -41,6 +41,17 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'projects': loadProjects(); break;
       }
     }
+    
+    function showLoading(elementId, colspan = 6, isList = false) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        if (isList) {
+          el.innerHTML = `<div class="loading-row"><div class="spinner"></div><span class="loading-text">Fetching latest data...</span></div>`;
+        } else {
+          el.innerHTML = `<tr><td colspan="${colspan}" class="loading-row"><div class="spinner"></div><span class="loading-text">Fetching latest data...</span></td></tr>`;
+        }
+      }
+    }
 
     // Dashboard
     async function loadDashboard() {
@@ -76,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Invoices
     async function loadInvoices() {
+      showLoading('invoicesTable', 7);
       invoices = await apiCall('/api/my-invoices');
       const tbody = document.getElementById('invoicesTable');
       tbody.innerHTML = invoices.map(inv => {
@@ -105,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Proposals
     async function loadProposals() {
+      showLoading('proposalsTable', 6);
       proposals = await apiCall('/api/my-proposals');
       const tbody = document.getElementById('proposalsTable');
       if (!tbody) return;
@@ -126,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Projects
     async function loadProjects() {
+      showLoading('projectsList', 0, true);
       projects = await apiCall('/api/my-projects');
       const container = document.getElementById('projectsList');
 
