@@ -30,7 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
           'Authorization': 'Bearer ' + token
         }
       });
-      return res.json();
+      const data = await res.json();
+      
+      if (!options.method || options.method === 'GET') {
+        if (!data.error) {
+          sessionStorage.setItem('cache_' + endpoint, JSON.stringify(data));
+        }
+      }
+      
+      return data;
     }
 
     function loadPageData(page) {
@@ -87,9 +95,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Invoices
     async function loadInvoices() {
-      showLoading('invoicesTable', 7);
+      const cached = sessionStorage.getItem('cache_/api/my-invoices');
+      if (cached) {
+        invoices = JSON.parse(cached);
+        renderInvoices();
+      } else {
+        showLoading('invoicesTable', 7);
+      }
+
       invoices = await apiCall('/api/my-invoices');
+      renderInvoices();
+    }
+
+    function renderInvoices() {
       const tbody = document.getElementById('invoicesTable');
+      if (!tbody) return;
       tbody.innerHTML = invoices.map(inv => {
         const total = calculateTotal(inv.services);
         const balance = total - (inv.payment_received || 0);
@@ -117,8 +137,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Proposals
     async function loadProposals() {
-      showLoading('proposalsTable', 6);
+      const cached = sessionStorage.getItem('cache_/api/my-proposals');
+      if (cached) {
+        proposals = JSON.parse(cached);
+        renderProposals();
+      } else {
+        showLoading('proposalsTable', 6);
+      }
+
       proposals = await apiCall('/api/my-proposals');
+      renderProposals();
+    }
+
+    function renderProposals() {
       const tbody = document.getElementById('proposalsTable');
       if (!tbody) return;
       
@@ -139,9 +170,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Projects
     async function loadProjects() {
-      showLoading('projectsList', 0, true);
+      const cached = sessionStorage.getItem('cache_/api/my-projects');
+      if (cached) {
+        projects = JSON.parse(cached);
+        renderProjects();
+      } else {
+        showLoading('projectsList', 0, true);
+      }
+
       projects = await apiCall('/api/my-projects');
+      renderProjects();
+    }
+
+    async function renderProjects() {
       const container = document.getElementById('projectsList');
+      if (!container) return;
 
       if (projects.length === 0) {
         container.innerHTML = '<div class="empty-state">No projects yet</div>';

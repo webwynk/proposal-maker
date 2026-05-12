@@ -36,7 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
           'Authorization': 'Bearer ' + token
         }
       });
-      return res.json();
+      const data = await res.json();
+      
+      // Cache GET requests
+      if (!options.method || options.method === 'GET') {
+        if (!data.error) {
+          sessionStorage.setItem('cache_' + endpoint, JSON.stringify(data));
+        }
+      }
+      
+      return data;
     }
 
     let statusChartInstance = null;
@@ -101,9 +110,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clients
     async function loadClients() {
-      showLoading('clientsTable', 6);
+      const cached = sessionStorage.getItem('cache_/api/clients');
+      if (cached) {
+        clients = JSON.parse(cached);
+        renderClients();
+      } else {
+        showLoading('clientsTable', 6);
+      }
+      
       clients = await apiCall('/api/clients');
+      renderClients();
+    }
+
+    function renderClients() {
       const tbody = document.getElementById('clientsTable');
+      if (!tbody) return;
       tbody.innerHTML = clients.map(c => `
         <tr>
           <td>${c.name}</td>
@@ -178,9 +199,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Invoices
     async function loadInvoices() {
-      showLoading('invoicesTable', 6);
+      const cached = sessionStorage.getItem('cache_/api/invoices');
+      if (cached) {
+        invoices = JSON.parse(cached);
+        renderInvoices();
+      } else {
+        showLoading('invoicesTable', 6);
+      }
+
       invoices = await apiCall('/api/invoices');
+      renderInvoices();
+    }
+
+    function renderInvoices() {
       const tbody = document.getElementById('invoicesTable');
+      if (!tbody) return;
       tbody.innerHTML = invoices.map(inv => `
         <tr>
           <td>${inv.invoice_number}</td>
@@ -234,9 +267,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Projects
     async function loadProjects() {
-      showLoading('projectsTable', 6);
+      const cached = sessionStorage.getItem('cache_/api/projects');
+      if (cached) {
+        projects = JSON.parse(cached);
+        renderProjects();
+      } else {
+        showLoading('projectsTable', 6);
+      }
+
       projects = await apiCall('/api/projects');
+      renderProjects();
+    }
+
+    function renderProjects() {
       const tbody = document.getElementById('projectsTable');
+      if (!tbody) return;
       tbody.innerHTML = projects.map(p => `
         <tr>
           <td>${p.name}</td>
@@ -364,9 +409,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Proposals (placeholder - same structure as invoices)
     async function loadProposals() {
-      showLoading('proposalsTable', 6);
+      const cached = sessionStorage.getItem('cache_/api/proposals');
+      if (cached) {
+        proposals = JSON.parse(cached);
+        renderProposals();
+      } else {
+        showLoading('proposalsTable', 6);
+      }
+
       proposals = await apiCall('/api/proposals');
+      renderProposals();
+    }
+
+    function renderProposals() {
       const tbody = document.getElementById('proposalsTable');
+      if (!tbody) return;
       tbody.innerHTML = proposals.map(p => `
         <tr>
           <td>${p.proposal_number}</td>
