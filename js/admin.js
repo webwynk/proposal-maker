@@ -363,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function editProject(id) {
       await loadClientsForSelect();
-      const proj = projects.find(p => p.id === id);
+      const proj = projects.find(p => String(p.id) === String(id));
       document.getElementById('projectModalTitle').textContent = 'Edit Project';
       document.getElementById('projectId').value = proj.id;
       document.getElementById('projectClient').value = proj.client_id;
@@ -704,8 +704,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadClientProjects(clientId) {
-      const allProjects = await apiCall('/api/projects');
-      const clientProjects = allProjects.filter(p => p.client_id == clientId);
+      projects = await apiCall('/api/projects');
+      const clientProjects = projects.filter(p => String(p.client_id) === String(clientId));
       document.getElementById('countProjects').textContent = clientProjects.length;
 
       const container = document.getElementById('clientProjectsTable'); 
