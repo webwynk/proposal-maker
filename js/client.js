@@ -187,37 +187,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${p.name}
                 <span class="type-pill ${typeClass}">${p.project_type || 'Project'}</span>
               </div>
-              <div style="font-size:0.8rem; color:var(--body); margin-top:12px; display:flex; gap:20px; font-weight:500;">
-                <span style="display:flex; align-items:center; gap:6px; opacity:0.8;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--primary);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 
-                    ${p.start_date || '—'} → ${p.end_date || '—'}
-                </span>
+              <div style="font-size:0.8rem; color:var(--body); margin-top:8px; display:flex; gap:16px;">
+                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom; margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Timeline: ${p.start_date || '—'} to ${p.end_date || '—'}</span>
               </div>
             </div>
             <div style="display:flex; gap:12px; align-items:center;">
               <span class="project-priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span>
-              <span class="status-badge status-${p.status}" style="font-weight:700; border: 1px solid rgba(0,0,0,0.05);">${p.status.replace('_', ' ')}</span>
+              <span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
             </div>
           </div>
           
-          <div class="project-info-short" style="margin:24px 0; font-size:0.95rem; color:var(--body); line-height:1.7; width: 100%; opacity:0.9;">
+          <div class="project-info-short" style="margin:20px 0; font-size:0.95rem; color:var(--body); line-height:1.6; width: 100%;">
             ${p.notes || 'No description provided.'}
           </div>
 
-          <div class="main-progress-container" style="margin-bottom:40px; background:rgba(99, 102, 241, 0.03); padding:24px; border-radius:var(--radius-lg); border: 1px solid rgba(99, 102, 241, 0.08);">
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:800; margin-bottom:12px; color:var(--title); text-transform:uppercase; letter-spacing:1px;">
-              <span>Current Project Completion</span>
-              <span style="color:var(--primary);">${totalProgress}%</span>
+          <div class="main-progress-container" style="margin-bottom:32px; background:#f8fafc; padding:20px; border-radius:16px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700; margin-bottom:10px; color:var(--title);">
+              <span>PROJECT OVERALL COMPLETION</span>
+              <span>${totalProgress}%</span>
             </div>
-            <div class="progress-bar" style="height:10px; background:rgba(0,0,0,0.05); border-radius:5px; overflow:hidden;">
-              <div class="progress-fill" style="width:${totalProgress}%; height:100%; background:linear-gradient(90deg, var(--primary), var(--accent)); transition: width 1.2s cubic-bezier(0.65, 0, 0.35, 1);"></div>
+            <div class="progress-bar" style="height:12px; background:#e2e8f0; border-radius:6px; overflow:hidden;">
+              <div class="progress-fill" style="width:${totalProgress}%; height:100%; background:linear-gradient(90deg, #7864f0, #ff5028); transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);"></div>
             </div>
           </div>
 
           <div class="milestone-section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:12px; border-bottom: 2px solid var(--bg);">
-                <h4 style="font-size:0.8rem; font-weight:900; color:var(--title); text-transform:uppercase; letter-spacing:1.5px; margin:0;">Roadmap & Milestones</h4>
-            </div>
+            <h4 style="font-size:0.9rem; font-weight:800; color:var(--title); text-transform:uppercase; letter-spacing:1px; margin-bottom:20px;">Milestone Roadmap</h4>
             <div class="milestone-grid">
                 ${milestones.map((m, idx) => `
                     <div class="milestone-card" onclick="viewMilestone(${p.id}, ${idx})">
@@ -226,8 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${m.description ? `<div class="milestone-card-desc">${m.description}</div>` : ''}
                         </div>
                         <div class="milestone-card-body">
-                            <div style="display:flex; justify-content:space-between; font-size:0.65rem; font-weight:800; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
-                                <span style="color:var(--body); opacity:0.5;">Progress</span>
+                            <div style="display:flex; justify-content:space-between; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
+                                <span style="color:var(--body); opacity:0.6;">PROGRESS</span>
                                 <span style="color:var(--primary);">${m.progress}%</span>
                             </div>
                             <div class="milestone-progress-bar">
@@ -235,13 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
                         <div class="milestone-card-footer">
-                            <span class="milestone-tile-dates">${m.end_date ? new Date(m.end_date).toLocaleDateString() : 'TBD'}</span>
+                            <span style="font-size:0.65rem; color:var(--body); opacity:0.6; font-weight:600;">${m.end_date ? new Date(m.end_date).toLocaleDateString() : 'TBD'}</span>
                             <div class="milestone-action-links">
                                 ${m.link ? `<a href="${m.link}" target="_blank" class="milestone-link-btn" title="Resource Link" onclick="event.stopPropagation()">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                                 </a>` : ''}
                                 ${m.file ? `<span class="milestone-link-btn" title="File: ${m.file}" onclick="event.stopPropagation()">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
                                 </span>` : ''}
                             </div>
                         </div>
@@ -250,10 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:48px; padding-top:32px; border-top:1px solid var(--border);">
-            <div style="display:flex; gap:16px;">
-              <button class="btn btn-outline" onclick="openProjectFiles(${p.id})" style="padding: 12px 20px;">📁 Files Repository</button>
-              <button class="btn btn-outline" onclick="openProjectComments(${p.id})" style="padding: 12px 20px;">💬 Collaboration Feed</button>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:40px; padding-top:24px; border-top:1px solid #f1f5f9;">
+            <div style="display:flex; gap:12px;">
+              <button class="btn btn-outline" onclick="openProjectFiles(${p.id})">📁 Files Repository</button>
+              <button class="btn btn-outline" onclick="openProjectComments(${p.id})">💬 Collaboration Feed</button>
             </div>
           </div>
         </div>
