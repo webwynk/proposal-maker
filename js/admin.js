@@ -415,24 +415,18 @@ document.addEventListener('DOMContentLoaded', () => {
         priority: document.getElementById('projectPriority').value,
         start_date: document.getElementById('projectStartDate').value,
         end_date: document.getElementById('projectEndDate').value,
-        milestones: getMilestonesFromForm(),
         notes: document.getElementById('projectNotes').value,
         external_links: document.getElementById('projectLinks').value
       };
-
-      // Auto-calculate progress based on milestones
-      if (data.milestones.length > 0) {
-        const sum = data.milestones.reduce((acc, m) => acc + (m.progress || 0), 0);
-        data.progress = Math.round(sum / data.milestones.length);
-      } else {
-        data.progress = 0;
-      }
-      data.status = data.progress >= 100 ? 'launched' : (data.progress > 0 ? 'development' : 'discovery');
 
       const id = document.getElementById('projectId').value;
       if (id) {
         await apiCall('/api/projects/' + id, { method: 'PUT', body: JSON.stringify(data) });
       } else {
+        // New project starts with empty milestones
+        data.milestones = [];
+        data.progress = 0;
+        data.status = 'discovery';
         await apiCall('/api/projects', { method: 'POST', body: JSON.stringify(data) });
       }
 
@@ -442,6 +436,109 @@ document.addEventListener('DOMContentLoaded', () => {
       const clientId = urlParams.get('id');
       if (clientId) loadClientProjects(clientId);
     }
+
+    window.openMilestoneModal = (projectId, milestoneIndex = null) => {
+      const proj = projects.find(p => String(p.id) === String(projectId));
+      if (!proj) return;
+
+      document.getElementById('milestoneProjectId').value = projectId;
+      document.getElementById('milestoneIndex').value = milestoneIndex !== null ? milestoneIndex : '';
+      document.getElementById('milestoneForm').reset();
+      
+      if (milestoneIndex !== null) {
+        const ms = proj.milestones[milestoneIndex];
+        document.getElementById('milestoneModalTitle').textContent = 'Edit Milestone';
+        document.getElementById('msTitle').value = ms.title || '';
+        document.getElementById('msStartDate').value = ms.start_date || '';
+        document.getElementById('msEndDate').value = ms.end_date || '';
+        document.getElementById('msProgress').value = ms.progress || 0;
+        document.getElementById('msDesc').value = ms.description || '';
+        document.getElementById('msLink').value = ms.link || '';
+        document.getElementById('msFile').value = ms.file || '';
+      } else {
+        document.getElementById('milestoneModalTitle').textContent = 'Add Milestone';
+      }
+      
+      document.getElementById('milestoneModal').classList.add('show');
+    };
+
+    window.saveMilestone = async () => {
+      const projectId = document.getElementById('milestoneProjectId').value;
+      const index = document.getElementById('milestoneIndex').value;
+      const proj = projects.find(p => String(p.id) === String(projectId));
+      if (!proj) return;
+      
+      const milestone = {
+        title: document.getElementById('msTitle').value,
+        start_date: document.getElementById('msStartDate').value,
+        end_date: document.getElementById('msEndDate').value,
+        progress: parseInt(document.getElementById('msProgress').value) || 0,
+        description: document.getElementById('msDesc').value,
+        link: document.getElementById('msLink').value,
+        file: document.getElementById('msFile').value
+      };
+
+      let milestones = Array.isArray(proj.milestones) ? [...proj.milestones] : [];
+      
+      if (index !== '') {
+        milestones[parseInt(index)] = milestone;
+      } else {
+        milestones.push(milestone);
+      }
+
+      // Calculate overall progress
+      const sum = milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0);
+      const avgProgress = milestones.length > 0 ? Math.round(sum / milestones.length) : 0;
+      const status = avgProgress >= 100 ? 'launched' : (avgProgress > 0 ? 'development' : 'discovery');
+
+      await apiCall('/api/projects/' + projectId, {
+        method: 'PUT',
+        body: JSON.stringify({
+          milestones: milestones,
+          progress: avgProgress,
+          status: status
+        })
+      });
+
+      closeModal('milestoneModal');
+      
+      // Update local state to prevent flicker
+      proj.milestones = milestones;
+      proj.progress = avgProgress;
+      proj.status = status;
+
+      loadProjects();
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientId = urlParams.get('id');
+      if (clientId) loadClientProjects(clientId);
+    };
+
+    window.deleteMilestone = async (projectId, index) => {
+      if (!confirm('Delete this milestone?')) return;
+      const proj = projects.find(p => String(p.id) === String(projectId));
+      if (!proj) return;
+
+      let milestones = Array.isArray(proj.milestones) ? [...proj.milestones] : [];
+      milestones.splice(index, 1);
+
+      const sum = milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0);
+      const avgProgress = milestones.length > 0 ? Math.round(sum / milestones.length) : 0;
+      const status = avgProgress >= 100 ? 'launched' : (avgProgress > 0 ? 'development' : 'discovery');
+
+      await apiCall('/api/projects/' + projectId, {
+        method: 'PUT',
+        body: JSON.stringify({
+          milestones: milestones,
+          progress: avgProgress,
+          status: status
+        })
+      });
+
+      loadProjects();
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientId = urlParams.get('id');
+      if (clientId) loadClientProjects(clientId);
+    };
 
     async function deleteProject(id) {
       if (confirm('Delete this project and all updates?')) {
@@ -688,15 +785,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <div class="project-card-saas" data-type="${p.project_type || 'Other'}">
           <div class="project-header">
-            <div>
+            <div style="flex:1;">
               <div class="project-name">
                 ${p.name}
                 <span class="type-pill ${typeClass}">${p.project_type || 'Project'}</span>
                 ${p.client_name ? `<small style="font-weight:400; opacity:0.6; display:block; margin-top:4px;">${p.client_name}</small>` : ''}
               </div>
-              <div style="font-size:0.8rem; color:var(--body); margin-top:4px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Timeline: ${p.start_date || '—'} to ${p.end_date || '—'}
+              <div style="font-size:0.8rem; color:var(--body); margin-top:8px; display:flex; gap:16px;">
+                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom; margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Timeline: ${p.start_date || '—'} to ${p.end_date || '—'}</span>
               </div>
             </div>
             <div style="display:flex; gap:12px; align-items:center;">
@@ -705,55 +801,68 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           
-          <div class="project-info-short" style="margin:16px 0; font-size:0.9rem; color:var(--body); line-height:1.5;">
+          <div class="project-info-short" style="margin:20px 0; font-size:0.95rem; color:var(--body); line-height:1.6; max-width:800px;">
             ${p.notes || 'No description provided.'}
           </div>
 
-          <div class="main-progress-container" style="margin-bottom:24px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:8px; color:var(--title);">
-              <span>Overall Progress</span>
+          <div class="main-progress-container" style="margin-bottom:32px; background:#f8fafc; padding:20px; border-radius:16px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700; margin-bottom:10px; color:var(--title);">
+              <span>PROJECT OVERALL COMPLETION</span>
               <span>${totalProgress}%</span>
             </div>
-            <div class="progress-bar" style="height:12px; background:#f0f2f9; border-radius:6px; overflow:hidden;">
-              <div class="progress-fill" style="width:${totalProgress}%; height:100%; background:linear-gradient(90deg, #7864f0, #ff5028); transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+            <div class="progress-bar" style="height:12px; background:#e2e8f0; border-radius:6px; overflow:hidden;">
+              <div class="progress-fill" style="width:${totalProgress}%; height:100%; background:linear-gradient(90deg, #7864f0, #ff5028); transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);"></div>
             </div>
           </div>
 
           <div class="milestone-section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h4 style="font-size:0.85rem; font-weight:700; color:var(--title); text-transform:uppercase; letter-spacing:0.5px;">Project Milestones</h4>
-                <button class="btn btn-outline btn-sm" onclick="editProject(${p.id})" style="font-size:0.7rem;">+ Manage</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h4 style="font-size:0.9rem; font-weight:800; color:var(--title); text-transform:uppercase; letter-spacing:1px;">Milestone Roadmap</h4>
             </div>
-            <div class="milestone-tile-list">
-                ${milestones.map(m => `
-                    <div class="milestone-tile">
-                        <div class="milestone-tile-header">
-                            <span class="milestone-tile-title">${m.title}</span>
-                            <span class="milestone-tile-progress-text">${m.progress}%</span>
+            <div class="milestone-grid">
+                ${milestones.map((m, idx) => `
+                    <div class="milestone-card" onclick="openMilestoneModal(${p.id}, ${idx})">
+                        <div class="milestone-card-header">
+                            <div class="milestone-card-title">${m.title}</div>
+                            ${m.description ? `<div class="milestone-card-desc">${m.description}</div>` : ''}
                         </div>
-                        <div class="progress-bar" style="height:4px; background:#eef0f7; border-radius:2px; overflow:hidden;">
-                            <div class="progress-fill" style="width:${m.progress}%; height:100%; background:var(--primary);"></div>
+                        <div class="milestone-card-body">
+                            <div style="display:flex; justify-content:space-between; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
+                                <span style="color:var(--body); opacity:0.6;">PROGRESS</span>
+                                <span style="color:var(--primary);">${m.progress}%</span>
+                            </div>
+                            <div class="milestone-progress-bar">
+                                <div class="milestone-progress-fill" style="width:${m.progress}%"></div>
+                            </div>
                         </div>
-                        <div class="milestone-tile-footer">
-                            <span class="milestone-tile-dates">${m.start_date || '—'} → ${m.end_date || '—'}</span>
-                            ${m.link ? `<a href="${m.link}" target="_blank" class="milestone-resource-link">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                                Resource
-                            </a>` : ''}
+                        <div class="milestone-card-footer">
+                            <span style="font-size:0.65rem; color:var(--body); opacity:0.6; font-weight:600;">${m.end_date ? new Date(m.end_date).toLocaleDateString() : 'TBD'}</span>
+                            <div class="milestone-action-links">
+                                ${m.link ? `<a href="${m.link}" target="_blank" class="milestone-link-btn" title="Resource Link" onclick="event.stopPropagation()">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                </a>` : ''}
+                                ${m.file ? `<span class="milestone-link-btn" title="File: ${m.file}" onclick="event.stopPropagation()">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                                </span>` : ''}
+                            </div>
                         </div>
                     </div>
-                `).join('') || '<div class="empty-state" style="padding:20px;">No milestones defined yet.</div>'}
+                `).join('')}
+                <div class="milestone-card add-milestone-card" onclick="openMilestoneModal(${p.id})">
+                    <div class="add-milestone-icon">+</div>
+                    <div class="add-milestone-text">Add Milestone</div>
+                </div>
             </div>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:32px; padding-top:20px; border-top:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:40px; padding-top:24px; border-top:1px solid #f1f5f9;">
             <div style="display:flex; gap:12px;">
-              <button class="btn btn-outline btn-sm" onclick="openProjectFiles(${p.id})">📁 Project Files</button>
-              <button class="btn btn-outline btn-sm" onclick="openProjectComments(${p.id})">💬 Collaboration</button>
+              <button class="btn btn-outline" onclick="openProjectFiles(${p.id})">📁 Files Repository</button>
+              <button class="btn btn-outline" onclick="openProjectComments(${p.id})">💬 Collaboration Feed</button>
             </div>
-            <div style="display:flex; gap:8px;">
-              <button class="btn btn-outline btn-sm" onclick="editProject(${p.id})">Edit</button>
-              <button class="btn btn-outline btn-sm" style="color:red;" onclick="deleteProject(${p.id})">Delete</button>
+            <div style="display:flex; gap:12px;">
+              <button class="btn btn-outline" onclick="editProject(${p.id})">Project Settings</button>
+              <button class="btn btn-outline" style="color:#ef4444; border-color:#fee2e2;" onclick="deleteProject(${p.id})">Remove Project</button>
             </div>
           </div>
         </div>

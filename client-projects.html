@@ -56,6 +56,37 @@
     </div>
   </div>
 
+  <!-- View Milestone Modal -->
+  <div class="modal" id="milestoneModal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Milestone Details</h2>
+        <button class="modal-close" onclick="closeModal('milestoneModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <h3 id="msTitleView" style="margin-bottom:8px; font-weight: 800;"></h3>
+        <p id="msDateView" style="font-size:0.85rem; color:var(--body); opacity:0.7; margin-bottom:20px;"></p>
+        
+        <div style="margin-bottom:20px; background: #f8fafc; padding: 16px; border-radius: 12px;">
+            <label style="font-weight:700; font-size:0.7rem; color:var(--title); text-transform:uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">Current Progress</label>
+            <div style="font-size:1.8rem; font-weight:900; color:var(--primary);" id="msProgressView"></div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <label style="font-weight:700; font-size:0.7rem; color:var(--title); text-transform:uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Phase Description</label>
+            <p id="msDescView" style="font-size:0.95rem; line-height:1.6; color:var(--body);"></p>
+        </div>
+
+        <div class="milestone-action-links" style="display:flex; gap:12px; margin-top:24px;">
+            <!-- Links and files injected here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('milestoneModal')" style="width: 100%;">Got it</button>
+      </div>
+    </div>
+  </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="css/dashboard.css">
 </head>

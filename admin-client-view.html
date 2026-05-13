@@ -351,13 +351,6 @@
             </div>
           </div>
           <div class="form-group">
-            <label>Milestones</label>
-            <div id="milestoneContainer" style="margin-bottom:12px;">
-              <!-- Milestones with Name, Start, End, Progress, Link -->
-            </div>
-            <button type="button" class="btn btn-outline btn-sm" onclick="addMilestoneRow()">+ Add Milestone</button>
-          </div>
-          <div class="form-group">
             <label>Notes / Description</label>
             <textarea id="projectNotes" rows="3" placeholder="Project details..."></textarea>
           </div>
@@ -370,6 +363,56 @@
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="closeModal('projectModal')">Cancel</button>
         <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated Milestone Modal -->
+  <div class="modal" id="milestoneModal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="milestoneModalTitle">Add Milestone</h2>
+        <button class="modal-close" onclick="closeModal('milestoneModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="milestoneForm">
+          <input type="hidden" id="milestoneProjectId">
+          <input type="hidden" id="milestoneIndex">
+          <div class="form-group">
+            <label>Milestone Name</label>
+            <input type="text" id="msTitle" placeholder="e.g. Initial Design Phase" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" id="msStartDate">
+            </div>
+            <div class="form-group">
+              <label>End Date</label>
+              <input type="date" id="msEndDate">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Progress (%)</label>
+            <input type="number" id="msProgress" min="0" max="100" value="0">
+          </div>
+          <div class="form-group">
+            <label>Description (Short)</label>
+            <textarea id="msDesc" rows="2" placeholder="What will be delivered?"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Resource Link (URL)</label>
+            <input type="url" id="msLink" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label>File Upload / Reference</label>
+            <input type="text" id="msFile" placeholder="File name or reference">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('milestoneModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveMilestone()">Save Milestone</button>
       </div>
     </div>
   </div>
