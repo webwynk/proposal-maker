@@ -177,15 +177,18 @@ document.addEventListener('DOMContentLoaded', () => {
         ? Math.round(milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0) / milestones.length) 
         : (p.progress || 0);
 
+      const typeClass = (p.project_type || '').toLowerCase().replace(' ', '-');
+
       return `
-        <div class="project-card-saas">
+        <div class="project-card-saas" data-type="${p.project_type || 'Other'}">
           <div class="project-header">
             <div>
               <div class="project-name">
                 ${p.name}
-                <span style="font-weight:400; font-size:0.75rem; color:var(--primary); background:rgba(255,80,40,0.1); padding:2px 8px; border-radius:12px; margin-left:8px;">${p.project_type || 'Project'}</span>
+                <span class="type-pill ${typeClass}">${p.project_type || 'Project'}</span>
               </div>
               <div style="font-size:0.8rem; color:var(--body); margin-top:4px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 Timeline: ${p.start_date || '—'} to ${p.end_date || '—'}
               </div>
             </div>
@@ -200,29 +203,37 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
           <div class="main-progress-container" style="margin-bottom:24px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:8px; color:var(--title);">
               <span>Overall Progress</span>
               <span>${totalProgress}%</span>
             </div>
-            <div class="progress-bar" style="height:10px; background:#eef0f7; border-radius:5px; overflow:hidden;">
-              <div class="progress-fill" style="width:${totalProgress}%; height:100%; background:linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.5s ease;"></div>
+            <div class="progress-bar" style="height:12px; background:#f0f2f9; border-radius:6px; overflow:hidden;">
+              <div class="progress-fill" style="width:${totalProgress}%; height:100%; background:linear-gradient(90deg, #7864f0, #ff5028); transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);"></div>
             </div>
           </div>
 
-          <div class="project-timeline">
-            <div class="timeline-track"></div>
-            ${milestones.map((m, idx) => {
-              const left = milestones.length > 1 ? (idx / (milestones.length - 1)) * 100 : 50;
-              return `
-                <div class="milestone-dot ${m.progress >= 100 ? 'completed' : ''}" style="left:${left}%" title="${m.title} (${m.progress}%)">
-                  <div class="milestone-label">
-                    ${m.title}
-                    <span class="milestone-date">${m.end_date ? new Date(m.end_date).toLocaleDateString() : 'TBD'}</span>
-                    ${m.link ? `<a href="${m.link}" target="_blank" style="display:block; font-size:0.6rem; color:var(--primary);">Resource Link</a>` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('')}
+          <div class="milestone-section">
+            <h4 style="font-size:0.85rem; font-weight:700; color:var(--title); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Project Milestones</h4>
+            <div class="milestone-tile-list">
+                ${milestones.map(m => `
+                    <div class="milestone-tile">
+                        <div class="milestone-tile-header">
+                            <span class="milestone-tile-title">${m.title}</span>
+                            <span class="milestone-tile-progress-text">${m.progress}%</span>
+                        </div>
+                        <div class="progress-bar" style="height:4px; background:#eef0f7; border-radius:2px; overflow:hidden;">
+                            <div class="progress-fill" style="width:${m.progress}%; height:100%; background:var(--primary);"></div>
+                        </div>
+                        <div class="milestone-tile-footer">
+                            <span class="milestone-tile-dates">${m.start_date || '—'} → ${m.end_date || '—'}</span>
+                            ${m.link ? `<a href="${m.link}" target="_blank" class="milestone-resource-link">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                Resource
+                            </a>` : ''}
+                        </div>
+                    </div>
+                `).join('') || '<div class="empty-state" style="padding:20px;">No milestones defined yet.</div>'}
+            </div>
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:32px; padding-top:20px; border-top:1px solid var(--border);">
