@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check for ID in URL (Edit/View mode)
     const urlParams = new URLSearchParams(window.location.search);
     const proposalId = urlParams.get('id');
+    const clientId = urlParams.get('clientId');
     const isViewOnly = urlParams.get('view') === 'true';
 
     if (isViewOnly) {
@@ -84,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load clients
-    loadClients();
+    loadClients(clientId);
   }
 
   async function loadProposal(id) {
@@ -135,13 +136,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function loadClients() {
+  async function loadClients(preselectedId) {
     clients = await apiCall('/api/clients');
     const select = $('selectClient');
     if(select) {
       select.innerHTML = '<option value="">-- Or enter manually below --</option>' + 
         clients.filter(c => c.is_active).map(c => `<option value="${c.id}">${c.name} - ${c.company}</option>`).join('');
       
+      if (preselectedId) {
+        select.value = preselectedId;
+        const client = clients.find(c => c.id == preselectedId);
+        if (client) {
+          $('clientName').value = client.name;
+          $('clientCompany').value = client.company;
+          $('clientEmail').value = client.email;
+          $('clientPhone').value = client.phone || '';
+          
+          ['clientName', 'clientCompany', 'clientEmail', 'clientPhone'].forEach(id => {
+            const el = $(id);
+            if (el) el.dispatchEvent(new Event('input'));
+          });
+        }
+      }
+
       select.addEventListener('change', (e) => {
         const client = clients.find(c => c.id == e.target.value);
         if (client) {

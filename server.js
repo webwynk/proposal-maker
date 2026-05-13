@@ -99,6 +99,13 @@ app.delete('/api/clients/:id', authenticateToken, requireAdmin, async (req, res)
   res.json({ message: 'Client deleted successfully' });
 });
 
+app.get('/api/clients/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { data: client, error } = await supabase.from('users').select('id, name, company, email, phone, is_active, created_at').eq('id', id).eq('role', 'client').single();
+  if (error || !client) return res.status(404).json({ error: 'Client not found' });
+  res.json(client);
+});
+
 // ==================== ADMIN - INVOICES ====================
 
 app.get('/api/invoices', authenticateToken, requireAdmin, async (req, res) => {

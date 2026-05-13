@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Profile - WebWynk CRM</title>
+  <link rel="icon" href="assets/webwynk-logo.webp">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="assets/webwynk-logo.webp" alt="WebWynk" class="sidebar-logo">
+        <div class="sidebar-title" style="margin-top:8px;">CRM Dashboard</div>
+      </div>
+      <nav>
+        <a href="admin.html" class="nav-item" data-page="dashboard">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a href="admin-clients.html" class="nav-item active" data-page="clients">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Clients
+        </a>
+      </nav>
+      <div class="user-info">
+        <div class="user-name" id="userName">Admin</div>
+        <div class="user-role">Administrator</div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Client Dossier Header -->
+      <div class="dossier-header">
+        <div class="client-info-main">
+          <h1 id="viewClientName">Loading...</h1>
+          <div style="font-size: 1.1rem; color: var(--secondary); font-weight: 600;" id="viewClientCompany">...</div>
+          <div class="client-meta">
+            <div class="client-meta-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <span id="viewClientEmail">...</span>
+            </div>
+            <div class="client-meta-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <span id="viewClientPhone">...</span>
+            </div>
+          </div>
+        </div>
+        <div class="client-stats-brief">
+          <div class="mini-stat">
+            <div class="mini-stat-label">Invoices</div>
+            <div class="mini-stat-value" id="countInvoices">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-label">Projects</div>
+            <div class="mini-stat-value" id="countProjects">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" id="tab-overview" onclick="switchTab('overview')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Overview
+        </button>
+        <button class="tab-btn" id="tab-invoices" onclick="switchTab('invoices')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Invoices
+        </button>
+        <button class="tab-btn" id="tab-proposals" onclick="switchTab('proposals')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
+          Proposals
+        </button>
+        <button class="tab-btn" id="tab-projects" onclick="switchTab('projects')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Projects
+        </button>
+      </div>
+
+      <!-- Tab Contents -->
+      <div id="overview" class="tab-content active">
+        <div class="card">
+          <h3 style="margin-top:0; font-family:'Bricolage Grotesque',serif;">Quick Summary</h3>
+          <p style="color:var(--body); margin-bottom:24px;">Financial standing and activity for this client.</p>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Lifetime Value</div>
+              <div class="stat-value" id="clientLTV">₹0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Pending Balance</div>
+              <div class="stat-value" id="clientBalance" style="color: var(--primary);">₹0</div>
+            </div>
+          </div>
+          <div class="actions-cell" style="margin-top:24px;">
+            <button class="btn btn-outline" onclick="editClient(new URLSearchParams(window.location.search).get('id'))">Edit Client Details</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="invoices" class="tab-content">
+        <div class="page-header">
+          <h2 class="page-title">Client Invoices</h2>
+          <button class="btn btn-primary" onclick="showCreateInvoice()">+ New Invoice</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clientInvoicesTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="proposals" class="tab-content">
+        <div class="page-header">
+          <h2 class="page-title">Client Proposals</h2>
+          <button class="btn btn-primary" onclick="showCreateProposal()">+ New Proposal</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Proposal #</th>
+                <th>Project Title</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clientProposalsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="projects" class="tab-content">
+        <div class="page-header">
+          <h2 class="page-title">Client Projects</h2>
+          <button class="btn btn-primary" onclick="showAddProjectModal()">+ New Project</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Project Name</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Last Update</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clientProjectsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MODALS (Migrated from admin-clients.html and admin-projects.html) -->
+
+  <!-- Add/Edit Client Modal -->
+  <div class="modal" id="clientModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="clientModalTitle">Edit Client</h2>
+        <button class="modal-close" onclick="closeModal('clientModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="clientForm">
+          <input type="hidden" id="clientId">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="clientName" required>
+            </div>
+            <div class="form-group">
+              <label>Company Name *</label>
+              <input type="text" id="clientCompany" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email" id="clientEmail" required>
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="tel" id="clientPhone">
+            </div>
+          </div>
+          <div class="form-group" id="passwordGroup">
+            <label>Password *</label>
+            <input type="text" id="clientPassword">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="clientStatus">
+              <option value="1">Active</option>
+              <option value="0">Inactive</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('clientModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveClient()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoice Modal -->
+  <div class="modal" id="invoiceModal">
+    <div class="modal-content" style="max-width:1200px;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="invoiceModalTitle">Create Invoice</h2>
+        <button class="modal-close" onclick="closeModal('invoiceModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:0;">
+        <div class="two-panel">
+          <div class="editor-panel">
+            <form id="invoiceForm">
+              <input type="hidden" id="invoiceId">
+              <div class="form-group" id="invoiceClientGroup">
+                <label>Select Client *</label>
+                <select id="invoiceClient" required></select>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Invoice Number *</label>
+                  <input type="text" id="invoiceNumber" placeholder="INV-001" required>
+                </div>
+                <div class="form-group">
+                  <label>Invoice Date</label>
+                  <input type="date" id="invoiceDate">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Currency</label>
+                <select id="invoiceCurrency">
+                  <option value="INR">🇮🇳 India (₹)</option>
+                  <option value="USD">🌍 Worldwide ($)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="invoiceStatus">
+                  <option value="draft">Draft</option>
+                  <option value="sent">Sent</option>
+                  <option value="paid">Paid</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Services</label>
+                <div id="invoiceServices"></div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="addInvoiceService()" style="margin-top:8px;">+ Add Service</button>
+              </div>
+              <div class="form-group">
+                <label>Milestones (Optional)</label>
+                <div id="invoiceMilestones"></div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="addInvoiceMilestone()" style="margin-top:8px;">+ Add Milestone</button>
+              </div>
+              <div class="form-group">
+                <label>Payment Received</label>
+                <input type="number" id="paymentReceived" placeholder="0" min="0">
+              </div>
+              <div class="form-group">
+                <label>Notes</label>
+                <textarea id="invoiceNotes" rows="2" placeholder="Additional notes..."></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="preview-panel">
+            <div class="preview-doc" id="invoicePreviewDoc">
+              <!-- Content will be rendered by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('invoiceModal')">Cancel</button>
+        <button class="btn btn-secondary" onclick="saveInvoice('save')">Save</button>
+        <button class="btn btn-primary" onclick="saveInvoice('print')">Save & Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Modal -->
+  <div class="modal" id="projectModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="projectModalTitle">Add Project</h2>
+        <button class="modal-close" onclick="closeModal('projectModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="projectForm">
+          <input type="hidden" id="projectId">
+          <div class="form-group" id="projectClientGroup">
+            <label>Select Client *</label>
+            <select id="projectClient" required></select>
+          </div>
+          <div class="form-group">
+            <label>Project Name *</label>
+            <input type="text" id="projectName" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select id="projectStatus">
+                <option value="discovery">Discovery</option>
+                <option value="design">Design</option>
+                <option value="development">Development</option>
+                <option value="testing">Testing</option>
+                <option value="launched">Launched</option>
+                <option value="on_hold">On Hold</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Progress (%)</label>
+              <input type="number" id="projectProgress" min="0" max="100" value="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea id="projectNotes" rows="3" placeholder="Project details..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('projectModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Files Modal -->
+  <div class="modal" id="filesModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Project Files</h2>
+        <button class="modal-close" onclick="closeModal('filesModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="currentProjectFilesId">
+        <div class="form-group" style="display:flex; gap:12px; margin-bottom: 24px;">
+          <input type="file" id="fileUploadInput" style="flex:1;">
+          <button class="btn btn-primary" onclick="uploadProjectFile()">Upload</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>File Name</th>
+                <th>Uploaded By</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="projectFilesTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/admin.js"></script>
+  <script>
+    // Initial tab switching logic
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+  </script>
+</body>
+</html>

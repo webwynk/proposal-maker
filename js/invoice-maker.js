@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check for ID in URL (Edit/View mode)
     const urlParams = new URLSearchParams(window.location.search);
     const invoiceId = urlParams.get('id');
+    const clientId = urlParams.get('clientId');
     const isViewOnly = urlParams.get('view') === 'true';
 
     if (isViewOnly) {
@@ -60,10 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // Add one default service row (only if new)
       addServiceRow();
+      
+      // If we have a clientId, we'll wait for loadClients to handle it
     }
 
     // Load clients
-    loadClients();
+    loadClients(clientId);
   }
 
   async function loadInvoice(id) {
@@ -109,13 +112,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function loadClients() {
+  async function loadClients(preselectedId) {
     clients = await apiCall('/api/clients');
     const select = $('selectClient');
     if(select) {
       select.innerHTML = '<option value="">-- Or enter manually below --</option>' + 
         clients.filter(c => c.is_active).map(c => `<option value="${c.id}">${c.name} - ${c.company}</option>`).join('');
       
+      if (preselectedId) {
+        select.value = preselectedId;
+        // Trigger change to populate fields
+        const client = clients.find(c => c.id == preselectedId);
+        if (client) {
+          $('clientName').value = client.name;
+          $('clientCompany').value = client.company;
+          $('clientEmail').value = client.email;
+          $('clientPhone').value = client.phone || '';
+          $('clientAddress').value = client.address || '';
+          
+          ['clientName', 'clientCompany', 'clientEmail', 'clientPhone', 'clientAddress'].forEach(id => {
+            const el = $(id);
+            if (el) el.dispatchEvent(new Event('input'));
+          });
+        }
+      }
+
       select.addEventListener('change', (e) => {
         const client = clients.find(c => c.id == e.target.value);
         if (client) {

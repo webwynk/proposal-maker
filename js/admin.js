@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tbody.innerHTML = stats.recentInvoices.map(inv => `
         <tr>
           <td>${inv.invoice_number}</td>
-          <td>${inv.client_name}</td>
+          <td><a href="admin-client-view.html?id=${inv.client_id}" style="color:var(--secondary); font-weight:600; text-decoration:none;">${inv.client_name}</a></td>
           <td>${formatCurrency(calculateTotal(inv.services), inv.currency)}</td>
           <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
           <td>${inv.invoice_date || '—'}</td>
@@ -134,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td><span class="status-badge ${c.is_active ? 'status-paid' : 'status-draft'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
           <td>
             <div class="actions-cell">
+              <button class="btn btn-primary btn-sm" onclick="viewClientProfile(${c.id})">View</button>
               <button class="btn btn-outline btn-sm" onclick="editClient(${c.id})">Edit</button>
               <button class="btn btn-outline btn-sm" onclick="deleteClient(${c.id})">Delete</button>
             </div>
@@ -141,6 +142,10 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `).join('') || '<tr><td colspan="6" class="empty-state">No clients yet</td></tr>';
     }
+
+    window.viewClientProfile = (id) => {
+      window.location.href = `admin-client-view.html?id=${id}`;
+    };
 
     function showAddClientModal() {
       document.getElementById('clientModalTitle').textContent = 'Add Client';
@@ -151,7 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function editClient(id) {
-      const client = clients.find(c => c.id === id);
+      const client = clients.find(c => String(c.id) === String(id));
+      if (!client) return alert('Client data not loaded. Please wait a moment.');
+      
       document.getElementById('clientModalTitle').textContent = 'Edit Client';
       document.getElementById('clientId').value = client.id;
       document.getElementById('clientName').value = client.name;
@@ -187,7 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       closeModal('clientModal');
-      loadClients();
+      if (window.location.pathname.includes('admin-client-view.html')) {
+        initClientView();
+      } else {
+        loadClients();
+      }
     }
 
     async function deleteClient(id) {
@@ -196,6 +207,11 @@ document.addEventListener('DOMContentLoaded', () => {
         loadClients();
       }
     }
+
+    window.deleteClient = deleteClient;
+    window.editClient = editClient;
+    window.saveClient = saveClient;
+    window.showAddClientModal = showAddClientModal;
 
     // Invoices
     async function loadInvoices() {
@@ -241,8 +257,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showCreateInvoice() {
-      window.location.href = 'invoice.html';
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientId = urlParams.get('id');
+      if (clientId && window.location.pathname.includes('admin-client-view.html')) {
+        window.location.href = `invoice.html?clientId=${clientId}`;
+      } else {
+        window.location.href = 'invoice.html';
+      }
     }
+
+    window.showCreateInvoice = showCreateInvoice;
 
     async function editInvoice(id) {
       window.location.href = 'invoice.html?id=' + id;
@@ -442,7 +466,16 @@ document.addEventListener('DOMContentLoaded', () => {
       `).join('') || '<tr><td colspan="6" class="empty-state">No proposals yet</td></tr>';
     }
 
-    function showCreateProposal() { window.location.href = 'proposal.html'; }
+    function showCreateProposal() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientId = urlParams.get('id');
+      if (clientId && window.location.pathname.includes('admin-client-view.html')) {
+        window.location.href = `proposal.html?clientId=${clientId}`;
+      } else {
+        window.location.href = 'proposal.html';
+      }
+    }
+    window.showCreateProposal = showCreateProposal;
     async function viewProposal(id) { window.open(`proposal.html?id=${id}&view=true`, '_blank'); }
     async function editProposal(id) { window.location.href = 'proposal.html?id=' + id; }
     async function deleteProposal(id) { await apiCall('/api/proposals/' + id, { method: 'DELETE' }); loadProposals(); }
@@ -467,12 +500,178 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.href = 'index.html';
     }
 
-    // Initialize based on current active tab
-    const activeNav = document.querySelector('.nav-item.active');
-    if (activeNav) {
-      loadPageData(activeNav.dataset.page);
+    // Client View / Dossier Logic
+    async function initClientView() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientId = urlParams.get('id');
+      if (!clientId) {
+        window.location.href = 'admin-clients.html';
+        return;
+      }
+
+      // Hide client selection in modals if on this page
+      const invoiceClientGroup = document.getElementById('invoiceClientGroup');
+      const projectClientGroup = document.getElementById('projectClientGroup');
+      if (invoiceClientGroup) invoiceClientGroup.style.display = 'none';
+      if (projectClientGroup) projectClientGroup.style.display = 'none';
+
+      try {
+        // Load all clients first to populate the global 'clients' array (needed for Edit button)
+        clients = await apiCall('/api/clients');
+        
+        // Use the client from the already loaded array
+        const client = clients.find(c => String(c.id) === String(clientId));
+        
+        if (!client) {
+          alert('Client not found');
+          window.location.href = 'admin-clients.html';
+          return;
+        }
+
+        document.getElementById('viewClientName').textContent = client.name;
+        document.getElementById('viewClientCompany').textContent = client.company;
+        document.getElementById('viewClientEmail').textContent = client.email;
+        document.getElementById('viewClientPhone').textContent = client.phone || '—';
+
+        // Load Client Specific Data
+        loadClientInvoices(clientId);
+        loadClientProposals(clientId);
+        loadClientProjects(clientId);
+      } catch (err) {
+        console.error('Error initializing client view:', err);
+      }
+    }
+
+    async function loadClientInvoices(clientId) {
+      const allInvoices = await apiCall('/api/invoices');
+      const clientInvoices = allInvoices.filter(inv => inv.client_id == clientId);
+      
+      document.getElementById('countInvoices').textContent = clientInvoices.length;
+      
+      let ltv = 0;
+      let balance = 0;
+      clientInvoices.forEach(inv => {
+        const total = calculateTotal(inv.services);
+        ltv += total;
+        if (inv.status !== 'paid') {
+          balance += (total - (inv.payment_received || 0));
+        }
+      });
+      
+      document.getElementById('clientLTV').textContent = formatCurrency(ltv, 'INR');
+      document.getElementById('clientBalance').textContent = formatCurrency(balance, 'INR');
+
+      const tbody = document.getElementById('clientInvoicesTable');
+      if (tbody) {
+        tbody.innerHTML = clientInvoices.map(inv => `
+          <tr>
+            <td>${inv.invoice_number}</td>
+            <td>${formatCurrency(calculateTotal(inv.services), inv.currency)}</td>
+            <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
+            <td>${inv.invoice_date || '—'}</td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn btn-outline btn-sm" onclick="viewInvoice(${inv.id})">View</button>
+                <button class="btn btn-outline btn-sm" onclick="editInvoice(${inv.id})">Edit</button>
+                <button class="btn btn-outline btn-sm" onclick="deleteInvoice(${inv.id})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="empty-state">No invoices yet</td></tr>';
+      }
+    }
+
+    async function loadClientProposals(clientId) {
+      const allProposals = await apiCall('/api/proposals');
+      const clientProposals = allProposals.filter(p => p.client_id == clientId);
+      
+      const tbody = document.getElementById('clientProposalsTable');
+      if (tbody) {
+        tbody.innerHTML = clientProposals.map(p => `
+          <tr>
+            <td>${p.proposal_number}</td>
+            <td>${p.project_title || '—'}</td>
+            <td>${formatCurrency(calculateTotal(p.services), p.currency)}</td>
+            <td><span class="status-badge status-${p.status}">${p.status}</span></td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn btn-outline btn-sm" onclick="viewProposal(${p.id})">View</button>
+                <button class="btn btn-outline btn-sm" onclick="editProposal(${p.id})">Edit</button>
+                <button class="btn btn-outline btn-sm" onclick="deleteProposal(${p.id})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="empty-state">No proposals yet</td></tr>';
+      }
+    }
+
+    async function loadClientProjects(clientId) {
+      const allProjects = await apiCall('/api/projects');
+      const clientProjects = allProjects.filter(p => p.client_id == clientId);
+      
+      document.getElementById('countProjects').textContent = clientProjects.length;
+
+      const tbody = document.getElementById('clientProjectsTable');
+      if (tbody) {
+        tbody.innerHTML = clientProjects.map(p => `
+          <tr>
+            <td>${p.name}</td>
+            <td><span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span></td>
+            <td>
+              <div class="progress-bar">
+                <div class="progress-fill ${p.progress >= 75 ? 'high' : p.progress >= 50 ? 'medium' : 'low'}" style="width:${p.progress}%"></div>
+              </div>
+              <span style="font-size:0.75rem;">${p.progress}%</span>
+            </td>
+            <td>${p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}</td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn btn-outline btn-sm" onclick="openProjectFiles(${p.id})">Files</button>
+                <button class="btn btn-outline btn-sm" onclick="editProject(${p.id})">Edit</button>
+                <button class="btn btn-outline btn-sm" onclick="deleteProject(${p.id})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="empty-state">No projects yet</td></tr>';
+      }
+    }
+
+    window.switchTab = (tabId) => {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      const targetContent = document.getElementById(tabId);
+      const targetBtn = document.getElementById('tab-' + tabId);
+      if (targetContent) targetContent.classList.add('active');
+      if (targetBtn) targetBtn.classList.add('active');
+    };
+
+    // Global exposures for dossier actions
+    window.viewInvoice = viewInvoice;
+    window.editInvoice = editInvoice;
+    window.deleteInvoice = deleteInvoice;
+    window.viewProposal = viewProposal;
+    window.editProposal = editProposal;
+    window.deleteProposal = deleteProposal;
+    window.openProjectFiles = openProjectFiles;
+    window.editProject = editProject;
+    window.deleteProject = deleteProject;
+    window.showAddProjectModal = showAddProjectModal;
+    window.saveProject = saveProject;
+    window.uploadProjectFile = uploadProjectFile;
+    window.deleteProjectFile = deleteProjectFile;
+    window.closeModal = closeModal;
+    window.logout = logout;
+
+    // Initialize based on page
+    if (window.location.pathname.includes('admin-client-view.html')) {
+      initClientView();
     } else {
-      loadDashboard();
+      const activeNav = document.querySelector('.nav-item.active');
+      if (activeNav) {
+        loadPageData(activeNav.dataset.page);
+      } else {
+        loadDashboard();
+      }
     }
 });
   
