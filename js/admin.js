@@ -70,6 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('statProjects').textContent = stats.projectCount;
       document.getElementById('statRevenue').textContent = formatCurrency(stats.totalRevenue, 'INR');
 
+      // Render Recent Projects on Dashboard
+      const projectsContainer = document.getElementById('recentProjectsContainer');
+      if (projectsContainer) {
+        const allProjects = await apiCall('/api/projects');
+        projectsContainer.innerHTML = allProjects.slice(0, 3).map(p => renderProjectCard(p)).join('') || '<div class="empty-state">No active projects.</div>';
+      }
+
       const tbody = document.getElementById('recentInvoicesTable');
       tbody.innerHTML = stats.recentInvoices.map(inv => `
         <tr>
@@ -286,17 +293,16 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr>
           <td>${p.name}</td>
           <td>${p.client_name}</td>
+          <td><span class="project-priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span></td>
           <td><span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span></td>
           <td>
             <div class="progress-bar">
-              <div class="progress-fill ${p.progress >= 75 ? 'high' : p.progress >= 50 ? 'medium' : 'low'}" style="width:${p.progress}%"></div>
+              <div class="progress-fill" style="width: ${p.progress}%"></div>
             </div>
             <span style="font-size:0.75rem;">${p.progress}%</span>
           </td>
-          <td>${p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}</td>
           <td>
             <div class="actions-cell">
-              <button class="btn btn-outline btn-sm" onclick="openProjectFiles(${p.id})">Files</button>
               <button class="btn btn-outline btn-sm" onclick="editProject(${p.id})">Edit</button>
               <button class="btn btn-outline btn-sm" onclick="deleteProject(${p.id})">Delete</button>
             </div>
@@ -305,12 +311,53 @@ document.addEventListener('DOMContentLoaded', () => {
       `).join('') || '<tr><td colspan="6" class="empty-state">No projects yet</td></tr>';
     }
 
+    window.addMilestoneRow = (title = '', deadline = '', completed = false) => {
+      const container = document.getElementById('milestoneContainer');
+      if (!container) return;
+      const div = document.createElement('div');
+      div.className = 'form-row';
+      div.style.marginBottom = '8px';
+      div.style.alignItems = 'center';
+      div.innerHTML = `
+        <div style="flex:2">
+          <input type="text" class="milestone-title" placeholder="Milestone Name" value="${title}" style="width:100%; padding:8px; border:1px solid #e2e2f0; border-radius:6px;">
+        </div>
+        <div style="flex:1">
+          <input type="date" class="milestone-deadline" value="${deadline}" style="width:100%; padding:8px; border:1px solid #e2e2f0; border-radius:6px;">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; padding: 0 8px;">
+          <input type="checkbox" class="milestone-completed" ${completed ? 'checked' : ''}>
+          <button type="button" onclick="this.parentElement.parentElement.remove()" style="background:none; border:none; color:red; cursor:pointer; font-size:1.2rem;">&times;</button>
+        </div>
+      `;
+      container.appendChild(div);
+    };
+
+    function getMilestonesFromForm() {
+      const titles = document.querySelectorAll('.milestone-title');
+      const deadlines = document.querySelectorAll('.milestone-deadline');
+      const completeds = document.querySelectorAll('.milestone-completed');
+      const milestones = [];
+      titles.forEach((t, i) => {
+        if (t.value.trim()) {
+          milestones.push({
+            title: t.value.trim(),
+            deadline: deadlines[i].value,
+            completed: completeds[i].checked
+          });
+        }
+      });
+      return milestones;
+    }
+
     function showAddProjectModal() {
       loadClientsForSelect();
       document.getElementById('projectModalTitle').textContent = 'Add Project';
       document.getElementById('projectForm').reset();
       document.getElementById('projectId').value = '';
       document.getElementById('projectProgress').value = 0;
+      const container = document.getElementById('milestoneContainer');
+      if (container) container.innerHTML = '';
       document.getElementById('projectModal').classList.add('show');
     }
 
@@ -322,8 +369,21 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('projectClient').value = proj.client_id;
       document.getElementById('projectName').value = proj.name;
       document.getElementById('projectStatus').value = proj.status;
-      document.getElementById('projectProgress').value = proj.progress;
+      document.getElementById('projectPriority').value = proj.priority || 'Medium';
+      document.getElementById('projectProgress').value = proj.progress || 0;
+      document.getElementById('projectStartDate').value = proj.start_date || '';
+      document.getElementById('projectEndDate').value = proj.end_date || '';
       document.getElementById('projectNotes').value = proj.notes || '';
+      document.getElementById('projectLinks').value = Array.isArray(proj.external_links) ? JSON.stringify(proj.external_links) : (proj.external_links || '');
+      
+      const container = document.getElementById('milestoneContainer');
+      if (container) {
+        container.innerHTML = '';
+        if (proj.milestones && Array.isArray(proj.milestones)) {
+          proj.milestones.forEach(m => window.addMilestoneRow(m.title, m.deadline, m.completed));
+        }
+      }
+      
       document.getElementById('projectModal').classList.add('show');
     }
 
@@ -332,8 +392,13 @@ document.addEventListener('DOMContentLoaded', () => {
         client_id: document.getElementById('projectClient').value,
         name: document.getElementById('projectName').value,
         status: document.getElementById('projectStatus').value,
+        priority: document.getElementById('projectPriority').value,
         progress: parseInt(document.getElementById('projectProgress').value) || 0,
-        notes: document.getElementById('projectNotes').value
+        start_date: document.getElementById('projectStartDate').value,
+        end_date: document.getElementById('projectEndDate').value,
+        milestones: getMilestonesFromForm(),
+        notes: document.getElementById('projectNotes').value,
+        external_links: document.getElementById('projectLinks').value
       };
 
       const id = document.getElementById('projectId').value;
@@ -345,6 +410,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       closeModal('projectModal');
       loadProjects();
+      // If on dossier page, refresh that too
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientId = urlParams.get('id');
+      if (clientId) loadClientProjects(clientId);
     }
 
     async function deleteProject(id) {
@@ -581,36 +650,110 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    function renderProjectCard(p) {
+      const milestones = p.milestones || [];
+      const completedCount = milestones.filter(m => m.completed).length;
+      const totalMilestones = milestones.length;
+      const progressPercent = totalMilestones > 0 ? Math.round((completedCount / totalMilestones) * 100) : p.progress;
+
+      return `
+        <div class="project-card-saas">
+          <div class="project-header">
+            <div>
+              <div class="project-name">${p.name} ${p.client_name ? `<small style="font-weight:400; opacity:0.6; display:block;">${p.client_name}</small>` : ''}</div>
+              <div style="font-size:0.8rem; color:var(--body); margin-top:4px;">
+                Started: ${p.start_date || '—'} | Deadline: ${p.end_date || '—'}
+              </div>
+            </div>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <span class="project-priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span>
+              <span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
+            </div>
+          </div>
+          
+          <p style="font-size:0.9rem; color:var(--body); margin:16px 0; line-height:1.5;">${p.notes || 'No description provided.'}</p>
+
+          <div class="project-timeline">
+            <div class="timeline-track"></div>
+            <div class="timeline-progress" style="width:${progressPercent}%"></div>
+            ${milestones.map((m, idx) => {
+              const left = totalMilestones > 1 ? (idx / (totalMilestones - 1)) * 100 : 50;
+              return `
+                <div class="milestone-dot ${m.completed ? 'completed' : ''}" style="left:${left}%" title="${m.title} (${m.deadline || 'No deadline'})">
+                  <div class="milestone-label">
+                    ${m.title}
+                    <span class="milestone-date">${m.deadline ? new Date(m.deadline).toLocaleDateString() : ''}</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+            <div style="display:flex; gap:12px;">
+              <button class="btn btn-outline btn-sm" onclick="openProjectFiles(${p.id})">📁 Files</button>
+              <button class="btn btn-outline btn-sm" onclick="openProjectComments(${p.id})">💬 Comments</button>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline btn-sm" onclick="editProject(${p.id})">Edit</button>
+              <button class="btn btn-outline btn-sm" style="color:red;" onclick="deleteProject(${p.id})">Delete</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     async function loadClientProjects(clientId) {
       const allProjects = await apiCall('/api/projects');
       const clientProjects = allProjects.filter(p => p.client_id == clientId);
-      
       document.getElementById('countProjects').textContent = clientProjects.length;
 
-      const tbody = document.getElementById('clientProjectsTable');
-      if (tbody) {
-        tbody.innerHTML = clientProjects.map(p => `
-          <tr>
-            <td>${p.name}</td>
-            <td><span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span></td>
-            <td>
-              <div class="progress-bar">
-                <div class="progress-fill ${p.progress >= 75 ? 'high' : p.progress >= 50 ? 'medium' : 'low'}" style="width:${p.progress}%"></div>
-              </div>
-              <span style="font-size:0.75rem;">${p.progress}%</span>
-            </td>
-            <td>${p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '—'}</td>
-            <td>
-              <div class="actions-cell">
-                <button class="btn btn-outline btn-sm" onclick="openProjectFiles(${p.id})">Files</button>
-                <button class="btn btn-outline btn-sm" onclick="editProject(${p.id})">Edit</button>
-                <button class="btn btn-outline btn-sm" onclick="deleteProject(${p.id})">Delete</button>
-              </div>
-            </td>
-          </tr>
-        `).join('') || '<tr><td colspan="5" class="empty-state">No projects yet</td></tr>';
+      const container = document.getElementById('clientProjectsTable'); 
+      if (container) {
+        container.innerHTML = clientProjects.map(p => renderProjectCard(p)).join('') || '<div class="empty-state">No projects active for this client.</div>';
       }
     }
+
+    window.openProjectComments = async (id) => {
+      document.getElementById('currentCommentProjectId').value = id;
+      document.getElementById('commentsModal').classList.add('show');
+      loadComments(id);
+    };
+
+    async function loadComments(id) {
+      const comments = await apiCall('/api/projects/' + id + '/comments');
+      const list = document.getElementById('commentsList');
+      if (!list) return;
+      list.innerHTML = comments.map(c => `
+        <div class="comment-item">
+          <div class="comment-avatar">${c.author_name ? c.author_name[0].toUpperCase() : 'U'}</div>
+          <div class="comment-bubble">
+            <div class="comment-header">
+              <span class="comment-author">${c.author_name} <small style="opacity:0.6">(${c.author_role})</small></span>
+              <span class="comment-date">${new Date(c.created_at).toLocaleString()}</span>
+            </div>
+            <div class="comment-text">${c.comment}</div>
+          </div>
+        </div>
+      `).join('') || '<div class="empty-state">No comments yet.</div>';
+      list.scrollTop = list.scrollHeight;
+    }
+
+    window.postComment = async () => {
+      const id = document.getElementById('currentCommentProjectId').value;
+      const comment = document.getElementById('commentText').value;
+      if (!comment.trim()) return;
+
+      const res = await apiCall('/api/projects/' + id + '/comments', {
+        method: 'POST',
+        body: JSON.stringify({ comment })
+      });
+
+      if (res) {
+        document.getElementById('commentText').value = '';
+        loadComments(id);
+      }
+    };
 
     window.switchTab = (tabId) => {
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -629,6 +772,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.editProposal = editProposal;
     window.deleteProposal = deleteProposal;
     window.openProjectFiles = openProjectFiles;
+    window.openProjectComments = openProjectComments;
+    window.postComment = postComment;
     window.editProject = editProject;
     window.deleteProject = deleteProject;
     window.showAddProjectModal = showAddProjectModal;
@@ -637,6 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.deleteProjectFile = deleteProjectFile;
     window.closeModal = closeModal;
     window.logout = logout;
+    window.addMilestoneRow = addMilestoneRow;
 
     // Initialize based on page
     if (window.location.pathname.includes('admin-client-view.html')) {

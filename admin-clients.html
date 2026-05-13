@@ -215,13 +215,43 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Progress (%)</label>
-              <input type="number" id="projectProgress" min="0" max="100" value="0">
+              <label>Priority</label>
+              <select id="projectPriority">
+                <option value="Low">Low</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" id="projectStartDate">
+            </div>
+            <div class="form-group">
+              <label>Expected Completion</label>
+              <input type="date" id="projectEndDate">
             </div>
           </div>
           <div class="form-group">
-            <label>Notes</label>
+            <label>Progress (%)</label>
+            <input type="number" id="projectProgress" min="0" max="100" value="0">
+          </div>
+          <div class="form-group">
+            <label>Milestones</label>
+            <div id="milestoneContainer" style="margin-bottom:12px;">
+              <!-- Milestones will be added here -->
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="addMilestoneRow()">+ Add Milestone</button>
+          </div>
+          <div class="form-group">
+            <label>Notes / Description</label>
             <textarea id="projectNotes" rows="3" placeholder="Project details..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>External Links (JSON Array or List)</label>
+            <input type="text" id="projectLinks" placeholder='["http://link1.com", "http://link2.com"]'>
           </div>
         </form>
       </div>

@@ -198,11 +198,12 @@ app.get('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 app.post('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
-  const { client_id, name, status, progress, milestones, notes } = req.body;
+  const { client_id, name, status, progress, milestones, notes, priority, start_date, end_date, external_links } = req.body;
   if (!client_id || !name) return res.status(400).json({ error: 'Client and project name are required' });
 
   const { data: newProject, error } = await supabase.from('projects').insert([{
-    client_id, name, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes, created_by: req.user.id
+    client_id, name, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes,
+    priority: priority || 'Medium', start_date, end_date, external_links: external_links || [], created_by: req.user.id
   }]).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to create project' });
@@ -211,10 +212,11 @@ app.post('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
 
 app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { client_id, name, status, progress, milestones, notes } = req.body;
+  const { client_id, name, status, progress, milestones, notes, priority, start_date, end_date, external_links } = req.body;
   
   const { data: updated, error } = await supabase.from('projects').update({
-    client_id, name, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes, updated_at: new Date()
+    client_id, name, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes,
+    priority: priority || 'Medium', start_date, end_date, external_links: external_links || [], updated_at: new Date()
   }).eq('id', id).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to update project' });
@@ -238,6 +240,26 @@ app.get('/api/my-projects', authenticateToken, requireClient, async (req, res) =
     users: undefined
   })));
 });
+
+// ==================== PROJECT COMMENTS ====================
+
+app.get('/api/projects/:id/comments', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { data: comments, error } = await supabase.from('project_comments').select('*, users!project_comments_user_id_fkey(name, role)').eq('project_id', id).order('created_at', { ascending: true });
+  if (error) return res.status(500).json({ error: 'Failed to fetch comments' });
+  res.json(comments.map(c => ({ ...c, author_name: c.users?.name, author_role: c.users?.role, users: undefined })));
+});
+
+app.post('/api/projects/:id/comments', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { comment } = req.body;
+  if (!comment) return res.status(400).json({ error: 'Comment is required' });
+
+  const { data: newComment, error } = await supabase.from('project_comments').insert([{ project_id: id, user_id: req.user.id, comment }]).select('*, users!project_comments_user_id_fkey(name, role)').single();
+  if (error) return res.status(500).json({ error: 'Failed to add comment' });
+  res.json({ ...newComment, author_name: newComment.users?.name, author_role: newComment.users?.role, users: undefined });
+});
+
 
 // ==================== PROJECT UPDATES & FILES ====================
 
