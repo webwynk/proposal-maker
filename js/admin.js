@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return data;
     }
 
-    let statusChartInstance = null;
 
     function showLoading(elementId, colspan = 6) {
       const el = document.getElementById(elementId);
@@ -82,31 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `).join('');
 
-      renderCharts(stats.chartData);
     }
 
-    function renderCharts(data) {
-      if (!data) return;
-
-      if (statusChartInstance) statusChartInstance.destroy();
-
-      const statCtx = document.getElementById('statusChart').getContext('2d');
-      const statuses = data.projectStatusCounts.map(d => d.status.replace('_', ' '));
-      const counts = data.projectStatusCounts.map(d => d.count);
-      const bgColors = statuses.map((_, i) => ['#4f46e5', '#d97706', '#2563eb', '#db2777', '#059669', '#64748b'][i % 6]);
-
-      statusChartInstance = new Chart(statCtx, {
-        type: 'doughnut',
-        data: {
-          labels: statuses.length ? statuses : ['No Data'],
-          datasets: [{
-            data: counts.length ? counts : [1],
-            backgroundColor: bgColors.length ? bgColors : ['#e2e2f0']
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-    }
 
     // Clients
     async function loadClients() {

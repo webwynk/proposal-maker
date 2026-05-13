@@ -429,27 +429,7 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) =>
     const { data: recentInvoicesData } = await supabase.from('invoices').select('*, users!invoices_client_id_fkey(name, company)').order('created_at', { ascending: false }).limit(5);
     const recentInvoices = (recentInvoicesData || []).map(i => ({ ...i, client_name: i.users?.name, client_company: i.users?.company, users: undefined }));
 
-    const { data: allProjects } = await supabase.from('projects').select('status');
-    const projectStatusCounts = [];
-    if (allProjects) {
-      const counts = allProjects.reduce((acc, p) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {});
-      for (const [status, count] of Object.entries(counts)) { projectStatusCounts.push({ status, count }); }
-    }
-
-    // Revenue by month logic
-    const { data: last6MonthsInvoices } = await supabase.from('invoices').select('created_at, payment_received').neq('status', 'draft');
-    const revenueByMonthMap = {};
-    if (last6MonthsInvoices) {
-      last6MonthsInvoices.forEach(inv => {
-        if (!inv.created_at) return;
-        const d = new Date(inv.created_at);
-        const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        revenueByMonthMap[month] = (revenueByMonthMap[month] || 0) + (inv.payment_received || 0);
-      });
-    }
-    const revenueByMonth = Object.entries(revenueByMonthMap).map(([month, revenue]) => ({ month, revenue })).sort((a, b) => a.month.localeCompare(b.month));
-
-    res.json({ clientCount, invoiceCount, projectCount, proposalCount, totalRevenue, recentInvoices, chartData: { projectStatusCounts, revenueByMonth } });
+    res.json({ clientCount, invoiceCount, projectCount, proposalCount, totalRevenue, recentInvoices });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
