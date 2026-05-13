@@ -204,14 +204,13 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Status</label>
-              <select id="projectStatus">
-                <option value="discovery">Discovery</option>
-                <option value="design">Design</option>
-                <option value="development">Development</option>
-                <option value="testing">Testing</option>
-                <option value="launched">Launched</option>
-                <option value="on_hold">On Hold</option>
+              <label>Project Type</label>
+              <select id="projectType">
+                <option value="Web Development">Web Development</option>
+                <option value="SEO">SEO</option>
+                <option value="Design">Design</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Other">Other</option>
               </select>
             </div>
             <div class="form-group">
@@ -235,13 +234,9 @@
             </div>
           </div>
           <div class="form-group">
-            <label>Progress (%)</label>
-            <input type="number" id="projectProgress" min="0" max="100" value="0">
-          </div>
-          <div class="form-group">
             <label>Milestones</label>
             <div id="milestoneContainer" style="margin-bottom:12px;">
-              <!-- Milestones will be added here -->
+              <!-- Milestones with Name, Start, End, Progress, Link -->
             </div>
             <button type="button" class="btn btn-outline btn-sm" onclick="addMilestoneRow()">+ Add Milestone</button>
           </div>
@@ -250,8 +245,8 @@
             <textarea id="projectNotes" rows="3" placeholder="Project details..."></textarea>
           </div>
           <div class="form-group">
-            <label>External Links (JSON Array or List)</label>
-            <input type="text" id="projectLinks" placeholder='["http://link1.com", "http://link2.com"]'>
+            <label>External Links (JSON Array)</label>
+            <input type="text" id="projectLinks" placeholder='["http://link1.com"]'>
           </div>
         </form>
       </div>

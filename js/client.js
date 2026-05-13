@@ -173,17 +173,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderProjectCard(p) {
       const milestones = p.milestones || [];
-      const completedCount = milestones.filter(m => m.completed).length;
-      const totalMilestones = milestones.length;
-      const progressPercent = totalMilestones > 0 ? Math.round((completedCount / totalMilestones) * 100) : p.progress;
+      const totalProgress = milestones.length > 0 
+        ? Math.round(milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0) / milestones.length) 
+        : (p.progress || 0);
 
       return `
         <div class="project-card-saas">
           <div class="project-header">
             <div>
-              <div class="project-name">${p.name}</div>
+              <div class="project-name">
+                ${p.name}
+                <span style="font-weight:400; font-size:0.75rem; color:var(--primary); background:rgba(255,80,40,0.1); padding:2px 8px; border-radius:12px; margin-left:8px;">${p.project_type || 'Project'}</span>
+              </div>
               <div style="font-size:0.8rem; color:var(--body); margin-top:4px;">
-                Started: ${p.start_date || '—'} | Deadline: ${p.end_date || '—'}
+                Timeline: ${p.start_date || '—'} to ${p.end_date || '—'}
               </div>
             </div>
             <div style="display:flex; gap:12px; align-items:center;">
@@ -192,28 +195,40 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           
-          <p style="font-size:0.9rem; color:var(--body); margin:16px 0; line-height:1.5;">${p.notes || 'No description provided.'}</p>
+          <div class="project-info-short" style="margin:16px 0; font-size:0.9rem; color:var(--body); line-height:1.5;">
+            ${p.notes || 'No description provided.'}
+          </div>
+
+          <div class="main-progress-container" style="margin-bottom:24px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; margin-bottom:6px;">
+              <span>Overall Progress</span>
+              <span>${totalProgress}%</span>
+            </div>
+            <div class="progress-bar" style="height:10px; background:#eef0f7; border-radius:5px; overflow:hidden;">
+              <div class="progress-fill" style="width:${totalProgress}%; height:100%; background:linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.5s ease;"></div>
+            </div>
+          </div>
 
           <div class="project-timeline">
             <div class="timeline-track"></div>
-            <div class="timeline-progress" style="width:${progressPercent}%"></div>
             ${milestones.map((m, idx) => {
-              const left = totalMilestones > 1 ? (idx / (totalMilestones - 1)) * 100 : 50;
+              const left = milestones.length > 1 ? (idx / (milestones.length - 1)) * 100 : 50;
               return `
-                <div class="milestone-dot ${m.completed ? 'completed' : ''}" style="left:${left}%" title="${m.title} (${m.deadline || 'No deadline'})">
+                <div class="milestone-dot ${m.progress >= 100 ? 'completed' : ''}" style="left:${left}%" title="${m.title} (${m.progress}%)">
                   <div class="milestone-label">
                     ${m.title}
-                    <span class="milestone-date">${m.deadline ? new Date(m.deadline).toLocaleDateString() : ''}</span>
+                    <span class="milestone-date">${m.end_date ? new Date(m.end_date).toLocaleDateString() : 'TBD'}</span>
+                    ${m.link ? `<a href="${m.link}" target="_blank" style="display:block; font-size:0.6rem; color:var(--primary);">Resource Link</a>` : ''}
                   </div>
                 </div>
               `;
             }).join('')}
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:32px; padding-top:20px; border-top:1px solid var(--border);">
             <div style="display:flex; gap:12px;">
-              <button class="btn btn-outline btn-sm" onclick="openProjectFiles(${p.id})">📁 Files</button>
-              <button class="btn btn-outline btn-sm" onclick="openProjectComments(${p.id})">💬 Comments</button>
+              <button class="btn btn-outline btn-sm" onclick="openProjectFiles(${p.id})">📁 Project Files</button>
+              <button class="btn btn-outline btn-sm" onclick="openProjectComments(${p.id})">💬 Collaboration</button>
             </div>
           </div>
         </div>
