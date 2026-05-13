@@ -76,21 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (statProjects) statProjects.textContent = projects.filter(p => p.status !== 'launched').length;
 
       const recent = projects.slice(0, 3);
-      document.getElementById('recentProjects').innerHTML = recent.map(p => `
-        <div class="project-card">
-          <div class="project-header">
-            <div>
-              <div class="project-name">${p.name}</div>
-              <div style="font-size:0.8rem; color:var(--body); margin-top:4px;">${p.client_name}</div>
-            </div>
-            <span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill ${p.progress >= 75 ? 'high' : p.progress >= 50 ? 'medium' : 'low'}" style="width:${p.progress}%"></div>
-          </div>
-          <div style="font-size:0.75rem; color:var(--body); margin-top:4px;">${p.progress}% complete</div>
-        </div>
-      `).join('') || '<p style="color:var(--body); text-align:center;">No active projects</p>';
+      const container = document.getElementById('recentProjects');
+      if (container) {
+        container.innerHTML = recent.map(p => renderProjectCard(p)).join('') || '<p style="color:var(--body); text-align:center;">No active projects</p>';
+      }
     }
 
     // Invoices
@@ -182,6 +171,55 @@ document.addEventListener('DOMContentLoaded', () => {
       renderProjects();
     }
 
+    function renderProjectCard(p) {
+      const milestones = p.milestones || [];
+      const completedCount = milestones.filter(m => m.completed).length;
+      const totalMilestones = milestones.length;
+      const progressPercent = totalMilestones > 0 ? Math.round((completedCount / totalMilestones) * 100) : p.progress;
+
+      return `
+        <div class="project-card-saas">
+          <div class="project-header">
+            <div>
+              <div class="project-name">${p.name}</div>
+              <div style="font-size:0.8rem; color:var(--body); margin-top:4px;">
+                Started: ${p.start_date || '—'} | Deadline: ${p.end_date || '—'}
+              </div>
+            </div>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <span class="project-priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span>
+              <span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
+            </div>
+          </div>
+          
+          <p style="font-size:0.9rem; color:var(--body); margin:16px 0; line-height:1.5;">${p.notes || 'No description provided.'}</p>
+
+          <div class="project-timeline">
+            <div class="timeline-track"></div>
+            <div class="timeline-progress" style="width:${progressPercent}%"></div>
+            ${milestones.map((m, idx) => {
+              const left = totalMilestones > 1 ? (idx / (totalMilestones - 1)) * 100 : 50;
+              return `
+                <div class="milestone-dot ${m.completed ? 'completed' : ''}" style="left:${left}%" title="${m.title} (${m.deadline || 'No deadline'})">
+                  <div class="milestone-label">
+                    ${m.title}
+                    <span class="milestone-date">${m.deadline ? new Date(m.deadline).toLocaleDateString() : ''}</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+            <div style="display:flex; gap:12px;">
+              <button class="btn btn-outline btn-sm" onclick="openProjectFiles(${p.id})">📁 Files</button>
+              <button class="btn btn-outline btn-sm" onclick="openProjectComments(${p.id})">💬 Comments</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     async function renderProjects() {
       const container = document.getElementById('projectsList');
       if (!container) return;
@@ -191,40 +229,57 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      container.innerHTML = await Promise.all(projects.map(async p => {
-        const updates = await apiCall('/api/projects/' + p.id + '/updates');
-        return `
-          <div class="project-card">
-            <div class="project-header">
-              <div>
-                <div class="project-name">${p.name}</div>
-                <div style="font-size:0.8rem; color:var(--body); margin-top:4px;">${p.client_name}</div>
-              </div>
-              <span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill ${p.progress >= 75 ? 'high' : p.progress >= 50 ? 'medium' : 'low'}" style="width:${p.progress}%"></div>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; margin-bottom:16px;">
-              <div style="font-size:0.75rem; color:var(--body);">${p.progress}% complete</div>
-              <button class="btn btn-outline btn-sm" onclick="openProjectFiles(${p.id})">Project Files</button>
-            </div>
-            ${p.notes ? `<div style="font-size:0.85rem; color:var(--body); padding:12px; background:var(--bg); border-radius:8px; margin-bottom:16px;">${p.notes}</div>` : ''}
-            ${updates.length > 0 ? `
-              <div class="project-updates">
-                <div style="font-size:0.75rem; font-weight:700; color:var(--title); margin-bottom:12px;">Project Updates</div>
-                ${updates.map(u => `
-                  <div class="update-item">
-                    <div class="update-date">${new Date(u.created_at).toLocaleDateString()} by ${u.author_name}</div>
-                    <div class="update-content">${u.content}</div>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }));
+      container.innerHTML = projects.map(p => renderProjectCard(p)).join('');
     }
+
+    async function openProjectComments(id) {
+      document.getElementById('currentCommentProjectId').value = id;
+      document.getElementById('commentsModal').classList.add('show');
+      loadComments(id);
+    }
+
+    async function loadComments(id) {
+      const comments = await apiCall('/api/projects/' + id + '/comments');
+      const list = document.getElementById('commentsList');
+      if (!list) return;
+      list.innerHTML = comments.map(c => `
+        <div class="comment-item">
+          <div class="comment-avatar">${c.author_name ? c.author_name[0].toUpperCase() : 'U'}</div>
+          <div class="comment-bubble">
+            <div class="comment-header">
+              <span class="comment-author">${c.author_name} <small style="opacity:0.6">(${c.author_role})</small></span>
+              <span class="comment-date">${new Date(c.created_at).toLocaleString()}</span>
+            </div>
+            <div class="comment-text">${c.comment}</div>
+          </div>
+        </div>
+      `).join('') || '<div class="empty-state">No comments yet.</div>';
+      list.scrollTop = list.scrollHeight;
+    }
+
+    async function postComment() {
+      const id = document.getElementById('currentCommentProjectId').value;
+      const comment = document.getElementById('commentText').value;
+      if (!comment.trim()) return;
+
+      const res = await apiCall('/api/projects/' + id + '/comments', {
+        method: 'POST',
+        body: JSON.stringify({ comment })
+      });
+
+      if (res) {
+        document.getElementById('commentText').value = '';
+        loadComments(id);
+      }
+    }
+
+    // Expose to window
+    window.openProjectFiles = openProjectFiles;
+    window.openProjectComments = openProjectComments;
+    window.postComment = postComment;
+    window.closeModal = closeModal;
+    window.uploadProjectFile = uploadProjectFile;
+    window.deleteProjectFile = deleteProjectFile;
 
     // Project Files
     function openProjectFiles(id) {
