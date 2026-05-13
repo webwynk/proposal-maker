@@ -82,11 +82,12 @@ Default access: `http://localhost:3000`
 ---
 
 ## 🎨 Design System
-The WebWynk CRM utilizes a premium "Neo-Agency" aesthetic:
-*   **Primary Accent:** `#ff5028` (Action Orange)
-*   **System Depth:** `#7864f0` (Intelligence Purple)
-*   **Canvas:** `#f0f0ff` (Soft Lavender)
-*   **Typography:** `Bricolage Grotesque` (Display) & `Inter` (Functional)
+The WebWynk CRM utilizes a premium "SaaS 2.0" aesthetic:
+*   **Primary Accent:** `#6366f1` (Modern Indigo)
+*   **Secondary Flow:** `#ec4899` (Vibrant Pink)
+*   **Intelligence:** `#8b5cf6` (Deep Violet)
+*   **Canvas:** `#f8fafc` (Clean Slate)
+*   **Typography:** `Bricolage Grotesque` (Headings) & `Inter` (Data & Logic)
 
 ---
 
