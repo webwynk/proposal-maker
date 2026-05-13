@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderProjectCard(p) {
       const milestones = p.milestones || [];
       const totalProgress = milestones.length > 0 
-        ? Math.round(milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0) / milestones.length) 
+        ? Math.min(100, milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0)) 
         : (p.progress || 0);
 
       const typeClass = (p.project_type || '').toLowerCase().replace(' ', '-');

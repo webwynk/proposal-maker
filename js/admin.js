@@ -487,15 +487,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Calculate overall progress
-      const sum = milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0);
-      const avgProgress = milestones.length > 0 ? Math.round(sum / milestones.length) : 0;
-      const status = avgProgress >= 100 ? 'launched' : (avgProgress > 0 ? 'development' : 'discovery');
+      const totalProgress = Math.min(100, milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0));
+      const status = totalProgress >= 100 ? 'launched' : (totalProgress > 0 ? 'development' : 'discovery');
 
       await apiCall('/api/projects/' + projectId, {
         method: 'PUT',
         body: JSON.stringify({
           milestones: milestones,
-          progress: avgProgress,
+          progress: totalProgress,
           status: status
         })
       });
@@ -504,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Update local state to prevent flicker
       proj.milestones = milestones;
-      proj.progress = avgProgress;
+      proj.progress = totalProgress;
       proj.status = status;
 
       loadProjects();
@@ -521,15 +520,14 @@ document.addEventListener('DOMContentLoaded', () => {
       let milestones = Array.isArray(proj.milestones) ? [...proj.milestones] : [];
       milestones.splice(index, 1);
 
-      const sum = milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0);
-      const avgProgress = milestones.length > 0 ? Math.round(sum / milestones.length) : 0;
-      const status = avgProgress >= 100 ? 'launched' : (avgProgress > 0 ? 'development' : 'discovery');
+      const totalProgress = Math.min(100, milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0));
+      const status = totalProgress >= 100 ? 'launched' : (totalProgress > 0 ? 'development' : 'discovery');
 
       await apiCall('/api/projects/' + projectId, {
         method: 'PUT',
         body: JSON.stringify({
           milestones: milestones,
-          progress: avgProgress,
+          progress: totalProgress,
           status: status
         })
       });
@@ -777,7 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderProjectCard(p) {
       const milestones = p.milestones || [];
       const totalProgress = milestones.length > 0 
-        ? Math.round(milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0) / milestones.length) 
+        ? Math.min(100, milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0)) 
         : (p.progress || 0);
 
       const typeClass = (p.project_type || '').toLowerCase().replace(' ', '-');
