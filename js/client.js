@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           
-          <div class="project-info-short" style="margin:20px 0; font-size:0.95rem; color:var(--body); line-height:1.6; max-width:800px;">
+          <div class="project-info-short" style="margin:20px 0; font-size:0.95rem; color:var(--body); line-height:1.6; width: 100%;">
             ${p.notes || 'No description provided.'}
           </div>
 

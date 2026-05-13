@@ -801,7 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           
-          <div class="project-info-short" style="margin:20px 0; font-size:0.95rem; color:var(--body); line-height:1.6; max-width:800px;">
+          <div class="project-info-short" style="margin:20px 0; font-size:0.95rem; color:var(--body); line-height:1.6; width: 100%;">
             ${p.notes || 'No description provided.'}
           </div>
 
@@ -874,7 +874,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const clientProjects = projects.filter(p => String(p.client_id) === String(clientId));
       document.getElementById('countProjects').textContent = clientProjects.length;
 
-      const container = document.getElementById('clientProjectsTable'); 
+      const container = document.getElementById('clientProjectsList'); 
       if (container) {
         container.innerHTML = clientProjects.map(p => renderProjectCard(p)).join('') || '<div class="empty-state">No projects active for this client.</div>';
       }
