@@ -9,6 +9,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="css/dashboard.css">
+  <style>
+    .client-avatar-large {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--secondary);
+      color: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Bricolage Grotesque', serif;
+      font-weight: 700;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+  </style>
 </head>
 <body>
   <div class="app-layout">
@@ -39,8 +55,10 @@
     <main class="main-content">
       <!-- Client Dossier Header -->
       <div class="dossier-header">
-        <div class="client-info-main">
-          <h1 id="viewClientName">Loading...</h1>
+        <div class="client-info-main" style="display:flex; gap:20px; align-items:center;">
+          <div class="client-avatar-large" id="clientInitials">—</div>
+          <div>
+            <h1 id="viewClientName">Loading...</h1>
           <div style="font-size: 1.1rem; color: var(--secondary); font-weight: 600;" id="viewClientCompany">...</div>
           <div class="client-meta">
             <div class="client-meta-item">
@@ -51,6 +69,7 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               <span id="viewClientPhone">...</span>
             </div>
+          </div>
           </div>
         </div>
         <div class="client-stats-brief">
@@ -311,7 +330,8 @@
           <div class="form-row">
             <div class="form-group">
               <label>Project Type</label>
-              <select id="projectType">
+              <select id="projectType" required>
+                <option value="" disabled selected>Select Project Type</option>
                 <option value="Web Development">Web Development</option>
                 <option value="SEO">SEO</option>
                 <option value="Design">Design</option>
@@ -383,7 +403,10 @@
           </div>
           <div class="form-group">
             <label>Progress (%)</label>
-            <input type="number" id="msProgress" min="0" max="100" value="0">
+            <div class="progress-slider">
+              <input type="range" id="msProgress" min="0" max="100" value="0" oninput="document.getElementById('msProgressValue').textContent = this.value">
+              <span class="progress-slider-value" id="msProgressValue">0%</span>
+            </div>
           </div>
           <div class="form-group">
             <label>Description (Short)</label>
@@ -415,23 +438,13 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="currentProjectFilesId">
-        <div class="form-group" style="display:flex; gap:12px; margin-bottom: 24px;">
-          <input type="file" id="fileUploadInput" style="flex:1;">
-          <button class="btn btn-primary" onclick="uploadProjectFile()">Upload</button>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>File Name</th>
-                <th>Uploaded By</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="projectFilesTable"></tbody>
-          </table>
-        </div>
+        <label class="file-upload-zone" for="fileUploadInput">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Click to upload or drag and drop</p>
+        </label>
+        <input type="file" id="fileUploadInput" style="display:none;">
+        <button class="btn btn-primary" onclick="uploadProjectFile()" style="margin-bottom: 20px; width: 100%;">Upload File</button>
+        <div id="projectFilesTable"></div>
       </div>
     </div>
   </div>
@@ -450,7 +463,9 @@
         </div>
         <div class="comment-input-area">
           <textarea id="commentText" rows="2" placeholder="Add a comment or feedback..."></textarea>
-          <button class="btn btn-primary" onclick="postComment()" style="align-self: flex-end;">Send</button>
+          <button class="btn btn-primary btn-send-comment" onclick="postComment()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
         </div>
       </div>
     </div>

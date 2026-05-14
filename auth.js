@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = 'webwynk-crm-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'webwynk-crm-secret-key-2026';
 
 function generateToken(user) {
   return jwt.sign(

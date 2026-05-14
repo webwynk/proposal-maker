@@ -198,11 +198,11 @@ app.get('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 app.post('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
-  const { client_id, name, status, progress, milestones, notes, priority, start_date, end_date, external_links } = req.body;
+  const { client_id, name, project_type, status, progress, milestones, notes, priority, start_date, end_date, external_links } = req.body;
   if (!client_id || !name) return res.status(400).json({ error: 'Client and project name are required' });
 
   const { data: newProject, error } = await supabase.from('projects').insert([{
-    client_id, name, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes,
+    client_id, name, project_type, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes,
     priority: priority || 'Medium', start_date, end_date, external_links: external_links || [], created_by: req.user.id
   }]).select().single();
 
@@ -212,10 +212,10 @@ app.post('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
 
 app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { client_id, name, status, progress, milestones, notes, priority, start_date, end_date, external_links } = req.body;
+  const { client_id, name, project_type, status, progress, milestones, notes, priority, start_date, end_date, external_links } = req.body;
   
   const { data: updated, error } = await supabase.from('projects').update({
-    client_id, name, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes,
+    client_id, name, project_type, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes,
     priority: priority || 'Medium', start_date, end_date, external_links: external_links || [], updated_at: new Date()
   }).eq('id', id).select().single();
 

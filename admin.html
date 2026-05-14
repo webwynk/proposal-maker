@@ -9,6 +9,84 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="css/dashboard.css">
+  <style>
+    .topbar-greeting {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .topbar-greeting h1 {
+      font-family: 'Bricolage Grotesque', serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--title);
+      margin: 0;
+    }
+    .topbar-date {
+      font-size: 0.9rem;
+      color: var(--body);
+    }
+    .stat-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .stat-card-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+    .stat-card-icon.clients {
+      background: #e0e7ff;
+      color: #4f46e5;
+    }
+    .stat-card-icon.invoices {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+    .stat-card-icon.projects {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    .stat-card-icon.revenue {
+      background: #d1fae5;
+      color: #059669;
+    }
+    .project-card-compact {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+    .project-card-compact:hover {
+      background: #fafafa;
+      transform: translateX(4px);
+    }
+    .project-card-compact-info h4 {
+      font-family: 'Bricolage Grotesque', serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--title);
+      margin: 0 0 4px;
+    }
+    .project-card-compact-client {
+      font-size: 0.8rem;
+      color: var(--body);
+    }
+    .project-card-compact-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+  </style>
 </head>
 <body>
   <div class="app-layout">
@@ -40,30 +118,45 @@
       <!-- Dashboard Page -->
       <div id="page-dashboard">
         <div class="page-header">
-          <h1 class="page-title">Dashboard</h1>
+          <div class="topbar-greeting">
+            <h1 id="greeting">Good morning, Admin</h1>
+            <div class="topbar-date" id="currentDate"></div>
+          </div>
         </div>
+
         <div class="stats-grid">
           <div class="stat-card">
+            <div class="stat-card-icon clients">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
             <div class="stat-label">Total Clients</div>
             <div class="stat-value" id="statClients">0</div>
           </div>
           <div class="stat-card">
+            <div class="stat-card-icon invoices">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
             <div class="stat-label">Total Invoices</div>
             <div class="stat-value" id="statInvoices">0</div>
           </div>
           <div class="stat-card">
+            <div class="stat-card-icon projects">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            </div>
             <div class="stat-label">Active Projects</div>
             <div class="stat-value" id="statProjects">0</div>
           </div>
           <div class="stat-card">
+            <div class="stat-card-icon revenue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
             <div class="stat-label">Pending Revenue</div>
             <div class="stat-value" id="statRevenue">₹0</div>
           </div>
         </div>
 
-
         <div class="card">
-          <h3 style="font-family:'Bricolage Grotesque',serif; margin-bottom:16px;">Recent Invoices</h3>
+          <h3 style="font-family:'Bricolage Grotesque',serif; margin-bottom:16px; font-size: 1.1rem; font-weight: 600;">Recent Invoices</h3>
           <div class="table-container">
             <table>
               <thead>
@@ -81,7 +174,7 @@
         </div>
 
         <div style="margin-top: 32px;">
-          <h3 style="font-family:'Bricolage Grotesque',serif; margin-bottom:20px; font-size: 1.25rem;">Active Projects Overview</h3>
+          <h3 style="font-family:'Bricolage Grotesque',serif; margin-bottom:20px; font-size: 1.1rem; font-weight: 600;">Active Projects Overview</h3>
           <div id="recentProjectsContainer"></div>
         </div>
       </div>
@@ -90,6 +183,24 @@
   </div>
 
   <script src="js/admin.js"></script>
+  <script>
+    // Set greeting and date
+    function setGreeting() {
+      const now = new Date();
+      const hour = now.getHours();
+      let greeting = 'Good morning';
+      if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+      else if (hour >= 17) greeting = 'Good evening';
+
+      const userName = document.getElementById('userName').textContent;
+      document.getElementById('greeting').textContent = `${greeting}, ${userName}`;
+
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+    }
+
+    setGreeting();
+  </script>
 
 </body>
 </html>

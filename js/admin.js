@@ -36,13 +36,33 @@ document.addEventListener('DOMContentLoaded', () => {
           'Authorization': 'Bearer ' + token
         }
       });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.clear();
+        window.location.href = 'index.html';
+        return { error: 'Authentication failed' };
+      }
+
       const data = await res.json();
+      
+      if (data.error) {
+        console.error('API Error:', data.error);
+        // Return empty array/object to prevent .map() crashes
+        return Array.isArray(endpoint) ? [] : data; 
+      }
       
       // Cache GET requests
       if (!options.method || options.method === 'GET') {
         if (!data.error) {
           sessionStorage.setItem('cache_' + endpoint, JSON.stringify(data));
         }
+      } else {
+        // Clear relevant cache on mutation
+        sessionStorage.removeItem('cache_' + endpoint);
+        // Also clear common related caches if needed (e.g. stats)
+        if (endpoint.includes('/api/projects')) sessionStorage.removeItem('cache_/api/projects');
+        if (endpoint.includes('/api/invoices')) sessionStorage.removeItem('cache_/api/invoices');
+        if (endpoint.includes('/api/clients')) sessionStorage.removeItem('cache_/api/clients');
+        sessionStorage.removeItem('cache_/api/admin/stats');
       }
       
       return data;
@@ -74,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const projectsContainer = document.getElementById('recentProjectsContainer');
       if (projectsContainer) {
         const allProjects = await apiCall('/api/projects');
-        projectsContainer.innerHTML = allProjects.slice(0, 3).map(p => renderProjectCard(p)).join('') || '<div class="empty-state">No active projects.</div>';
+        projectsContainer.innerHTML = allProjects.slice(0, 3).map(p => renderCompactProjectCard(p)).join('') || '<div class="empty-state">No active projects.</div>';
       }
 
       const tbody = document.getElementById('recentInvoicesTable');
@@ -107,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderClients() {
       const tbody = document.getElementById('clientsTable');
-      if (!tbody) return;
+      if (!tbody || !Array.isArray(clients)) return;
       tbody.innerHTML = clients.map(c => `
         <tr>
           <td>${c.name}</td>
@@ -212,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderInvoices() {
       const tbody = document.getElementById('invoicesTable');
-      if (!tbody) return;
+      if (!tbody || !Array.isArray(invoices)) return;
       tbody.innerHTML = invoices.map(inv => `
         <tr>
           <td>${inv.invoice_number}</td>
@@ -288,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderProjects() {
       const tbody = document.getElementById('projectsTable');
-      if (!tbody) return;
+      if (!tbody || !Array.isArray(projects)) return;
       tbody.innerHTML = projects.map(p => `
         <tr>
           <td>${p.name}</td>
@@ -389,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('projectId').value = proj.id;
       document.getElementById('projectClient').value = proj.client_id;
       document.getElementById('projectName').value = proj.name;
-      document.getElementById('projectType').value = proj.project_type || 'Web Development';
+      document.getElementById('projectType').value = proj.project_type || '';
       document.getElementById('projectPriority').value = proj.priority || 'Medium';
       document.getElementById('projectStartDate').value = proj.start_date || '';
       document.getElementById('projectEndDate').value = proj.end_date || '';
@@ -452,6 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('msStartDate').value = ms.start_date || '';
         document.getElementById('msEndDate').value = ms.end_date || '';
         document.getElementById('msProgress').value = ms.progress || 0;
+        document.getElementById('msProgressValue').textContent = (ms.progress || 0) + '%';
         document.getElementById('msDesc').value = ms.description || '';
         document.getElementById('msLink').value = ms.link || '';
         document.getElementById('msFile').value = ms.file || '';
@@ -554,15 +575,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadProjectFiles(id) {
       const files = await apiCall('/api/projects/' + id + '/files');
-      const tbody = document.getElementById('projectFilesTable');
-      tbody.innerHTML = files.map(f => `
-        <tr>
-          <td><a href="${f.file_path.startsWith('http') ? f.file_path : '/uploads/' + f.file_path}" target="_blank">${f.original_name}</a></td>
-          <td>${f.uploader_name}</td>
-          <td>${new Date(f.created_at).toLocaleDateString()}</td>
-          <td><button class="btn btn-outline btn-sm" onclick="deleteProjectFile(${f.id}, ${id})">Delete</button></td>
-        </tr>
-      `).join('') || '<tr><td colspan="4" class="empty-state">No files uploaded yet</td></tr>';
+      const container = document.getElementById('projectFilesTable');
+
+      const getFileExtension = (filename) => {
+        const ext = filename.split('.').pop().toLowerCase();
+        if (['pdf'].includes(ext)) return 'pdf';
+        if (['doc', 'docx', 'txt'].includes(ext)) return 'doc';
+        if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) return 'img';
+        return 'default';
+      };
+
+      const isAdmin = (name) => name && (name.toLowerCase().includes('admin') || name.toLowerCase() === 'webwynke');
+
+      container.innerHTML = files.map(f => `
+        <div class="file-list-item">
+          <div class="file-icon ${getFileExtension(f.original_name)}">${f.original_name.split('.').pop().toUpperCase()}</div>
+          <div class="file-info">
+            <div class="file-name"><a href="${f.file_path.startsWith('http') ? f.file_path : '/uploads/' + f.file_path}" target="_blank">${f.original_name}</a></div>
+            <div class="file-meta">${new Date(f.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})}</div>
+          </div>
+          <span class="file-uploader-badge ${isAdmin(f.uploader_name) ? 'admin' : 'client'}">${f.uploader_name}</span>
+          <button class="btn-icon" style="padding:6px 8px; color:#ef4444;" onclick="deleteProjectFile(${f.id}, ${id})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>
+      `).join('') || '<div class="empty-state" style="padding:40px;">No files uploaded yet</div>';
     }
 
     async function uploadProjectFile() {
@@ -614,7 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderProposals() {
       const tbody = document.getElementById('proposalsTable');
-      if (!tbody) return;
+      if (!tbody || !Array.isArray(proposals)) return;
       tbody.innerHTML = proposals.map(p => `
         <tr>
           <td>${p.proposal_number}</td>
@@ -700,6 +737,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('viewClientEmail').textContent = client.email;
         document.getElementById('viewClientPhone').textContent = client.phone || '—';
 
+        // Set client initials avatar
+        const initials = client.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        if (document.getElementById('clientInitials')) {
+          document.getElementById('clientInitials').textContent = initials || client.name.charAt(0).toUpperCase();
+        }
+
         // Load Client Specific Data
         loadClientInvoices(clientId);
         loadClientProposals(clientId);
@@ -774,94 +817,162 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderProjectCard(p) {
       const milestones = p.milestones || [];
-      const totalProgress = milestones.length > 0 
-        ? Math.min(100, milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0)) 
+      const completedCount = milestones.filter(m => parseInt(m.progress) === 100).length;
+      const totalProgress = milestones.length > 0
+        ? Math.min(100, milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0))
         : (p.progress || 0);
 
       const typeClass = (p.project_type || '').toLowerCase().replace(' ', '-');
 
+      const getMilestoneStatusClass = (progress) => {
+        const pval = parseInt(progress) || 0;
+        if (pval === 0) return 'ms-pending';
+        if (pval >= 100) return 'ms-done';
+        return 'ms-active';
+      };
+
+      const getStatusIcon = (progress) => {
+        const pval = parseInt(progress) || 0;
+        if (pval === 0) {
+          return `<svg class="ms-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`;
+        }
+        if (pval >= 100) {
+          return `<svg class="ms-status-icon" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+        }
+        return `<svg class="ms-status-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+      };
+
+      const getStatusLabel = (progress) => {
+        const pval = parseInt(progress) || 0;
+        if (pval === 0) return 'PENDING';
+        if (pval >= 100) return 'DONE';
+        return 'IN PROGRESS';
+      };
+
       return `
-        <div class="project-card-saas" data-type="${p.project_type || 'Other'}">
+        <div class="project-card-saas status-${p.status || 'discovery'}" data-type="${p.project_type || 'Other'}">
           <div class="project-header">
             <div style="flex:1;">
-              <div class="project-name">
-                ${p.name}
-                <span class="type-pill ${typeClass}">${p.project_type || 'Project'}</span>
-                ${p.client_name ? `<small style="font-weight:400; opacity:0.6; display:block; margin-top:4px;">${p.client_name}</small>` : ''}
+              <div class="project-name" style="font-size:1.25rem;">
+                <span>${p.name}</span>
               </div>
+              <span class="type-pill ${typeClass}" style="margin-top:6px; display:inline-block;">${p.project_type || 'Project'}</span>
               <div style="font-size:0.8rem; color:var(--body); margin-top:8px; display:flex; gap:16px;">
                 <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom; margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Timeline: ${p.start_date || '—'} to ${p.end_date || '—'}</span>
               </div>
             </div>
-            <div style="display:flex; gap:12px; align-items:center;">
+            <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
               <span class="project-priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span>
-              <span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
+              <span class="status-badge status-${p.status}">${(p.status || 'discovery').replace('_', ' ')}</span>
             </div>
           </div>
-          
+
           <div class="project-info-short" style="margin:20px 0; font-size:0.95rem; color:var(--body); line-height:1.6; width: 100%;">
             ${p.notes || 'No description provided.'}
           </div>
 
-          <div class="main-progress-container" style="margin-bottom:32px; background:#f8fafc; padding:20px; border-radius:16px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700; margin-bottom:10px; color:var(--title);">
-              <span>PROJECT OVERALL COMPLETION</span>
-              <span>${totalProgress}%</span>
+          <div class="project-progress-section">
+            <div class="project-progress-meta">
+              <span class="project-progress-label">Overall Completion</span>
+              <span class="project-progress-value">${totalProgress}%</span>
             </div>
-            <div class="progress-bar" style="height:12px; background:#e2e8f0; border-radius:6px; overflow:hidden;">
-              <div class="progress-fill" style="width:${totalProgress}%; height:100%; background:linear-gradient(90deg, #7864f0, #ff5028); transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+            <div class="progress-bar" style="height:8px; border-radius:4px;">
+              <div class="progress-fill" style="width:${totalProgress}%; height:100%;"></div>
             </div>
+            <div class="project-progress-sub">${completedCount} of ${milestones.length} milestones complete</div>
           </div>
 
           <div class="milestone-section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h4 style="font-size:0.9rem; font-weight:800; color:var(--title); text-transform:uppercase; letter-spacing:1px;">Milestone Roadmap</h4>
+            <div class="milestone-section-header">
+              <span class="milestone-section-title">Milestone Roadmap</span>
+              <button class="btn-icon" onclick="openMilestoneModal(${p.id})" style="padding:6px 12px; font-size:0.75rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Milestone
+              </button>
             </div>
             <div class="milestone-grid">
-                ${milestones.map((m, idx) => `
-                    <div class="milestone-card" onclick="openMilestoneModal(${p.id}, ${idx})">
-                        <div class="milestone-card-header">
-                            <div class="milestone-card-title">${m.title}</div>
-                            ${m.description ? `<div class="milestone-card-desc">${m.description}</div>` : ''}
-                        </div>
-                        <div class="milestone-card-body">
-                            <div style="display:flex; justify-content:space-between; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
-                                <span style="color:var(--body); opacity:0.6;">PROGRESS</span>
-                                <span style="color:var(--primary);">${m.progress}%</span>
-                            </div>
-                            <div class="milestone-progress-bar">
-                                <div class="milestone-progress-fill" style="width:${m.progress}%"></div>
-                            </div>
-                        </div>
-                        <div class="milestone-card-footer">
-                            <span style="font-size:0.65rem; color:var(--body); opacity:0.6; font-weight:600;">${m.end_date ? new Date(m.end_date).toLocaleDateString() : 'TBD'}</span>
-                            <div class="milestone-action-links">
-                                ${m.link ? `<a href="${m.link}" target="_blank" class="milestone-link-btn" title="Resource Link" onclick="event.stopPropagation()">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                                </a>` : ''}
-                                ${m.file ? `<span class="milestone-link-btn" title="File: ${m.file}" onclick="event.stopPropagation()">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                                </span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-                <div class="milestone-card add-milestone-card" onclick="openMilestoneModal(${p.id})">
-                    <div class="add-milestone-icon">+</div>
-                    <div class="add-milestone-text">Add Milestone</div>
+              ${milestones.length === 0 ? `
+                <div class="milestone-empty">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.4;"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                  <h4>No milestones yet</h4>
+                  <p>Break this project into phases to track progress</p>
+                  <button class="btn btn-primary" onclick="openMilestoneModal(${p.id})" style="padding:8px 16px; font-size:0.8rem;">+ Add First Milestone</button>
                 </div>
+              ` : milestones.map((m, idx) => `
+                <div class="milestone-card ${getMilestoneStatusClass(m.progress)}" onclick="openMilestoneModal(${p.id}, ${idx})">
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    ${getStatusIcon(m.progress)}
+                    <span style="font-size:0.65rem; font-weight:700; letter-spacing:0.05em; color:var(--muted);">${getStatusLabel(m.progress)}</span>
+                  </div>
+                  <div class="milestone-card-title">${m.title}</div>
+                  ${m.description ? `<div class="milestone-card-desc">${m.description}</div>` : ''}
+                  <div style="display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:12px;">
+                    <div style="flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
+                      <div style="width:${m.progress}%; height:100%; background:${parseInt(m.progress) === 100 ? '#22c55e' : 'var(--secondary)'}; border-radius:3px;"></div>
+                    </div>
+                    <span style="font-size:0.75rem; font-weight:600; color:var(--body); min-width:36px;">${m.progress}%</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
+                    <span style="font-size:0.7rem; color:var(--muted);">Due: ${m.end_date ? new Date(m.end_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'TBD'}</span>
+                    <div style="display:flex; gap:6px;">
+                      ${m.link ? `<a href="${m.link}" target="_blank" title="Resource Link" onclick="event.stopPropagation()" style="color:var(--body);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
+                      ${m.file ? `<span title="File: ${m.file}" onclick="event.stopPropagation()" style="color:var(--body);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>` : ''}
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+              <div class="add-milestone-saas" onclick="openMilestoneModal(${p.id})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <span>Add a Milestone</span>
+              </div>
             </div>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:40px; padding-top:24px; border-top:1px solid #f1f5f9;">
-            <div style="display:flex; gap:12px;">
-              <button class="btn btn-outline" onclick="openProjectFiles(${p.id})">📁 Files Repository</button>
-              <button class="btn btn-outline" onclick="openProjectComments(${p.id})">💬 Collaboration Feed</button>
+          <div class="project-footer-bar">
+            <div class="project-footer-left">
+              <button class="btn-icon" onclick="openProjectFiles(${p.id})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                Files
+              </button>
+              <button class="btn-icon" onclick="openProjectComments(${p.id})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                Comments
+              </button>
             </div>
-            <div style="display:flex; gap:12px;">
-              <button class="btn btn-outline" onclick="editProject(${p.id})">Project Settings</button>
-              <button class="btn btn-outline" style="color:#ef4444; border-color:#fee2e2;" onclick="deleteProject(${p.id})">Remove Project</button>
+            <div class="project-footer-right">
+              <button class="btn-icon" onclick="editProject(${p.id})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                Settings
+              </button>
+              <button class="btn-icon danger" onclick="deleteProject(${p.id})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                Remove
+              </button>
             </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCompactProjectCard(p) {
+      const totalProgress = p.progress || 0;
+      return `
+        <div class="project-card-compact">
+          <div class="project-card-compact-info">
+            <h4>${p.name}</h4>
+            <div class="project-card-compact-client">${p.client_name || 'No client'}</div>
+          </div>
+          <div class="project-card-compact-status">
+            <div style="width: 100px;">
+              <div style="display:flex; justify-content:space-between; font-size:0.7rem; margin-bottom:4px;">
+                <span style="color:var(--body);">Progress</span>
+                <span style="color:var(--secondary); font-weight:600;">${totalProgress}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width:${totalProgress}%;"></div>
+              </div>
+            </div>
+            <span class="status-badge status-${p.status}">${(p.status || 'draft').replace('_', ' ')}</span>
           </div>
         </div>
       `;
@@ -888,9 +999,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const comments = await apiCall('/api/projects/' + id + '/comments');
       const list = document.getElementById('commentsList');
       if (!list) return;
+      const isCommentAdmin = (role) => role && role.toLowerCase() === 'admin';
       list.innerHTML = comments.map(c => `
         <div class="comment-item">
-          <div class="comment-avatar">${c.author_name ? c.author_name[0].toUpperCase() : 'U'}</div>
+          <div class="comment-avatar ${isCommentAdmin(c.author_role) ? 'comment-avatar-admin' : 'comment-avatar-client'}">${c.author_name ? c.author_name[0].toUpperCase() : 'U'}</div>
           <div class="comment-bubble">
             <div class="comment-header">
               <span class="comment-author">${c.author_name} <small style="opacity:0.6">(${c.author_role})</small></span>

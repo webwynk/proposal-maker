@@ -3,91 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebWynk CRM - My Account</title>
+  <title>WebWynk CRM - My Projects</title>
   <link rel="icon" href="assets/webwynk-logo.webp">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<!-- Project Files Modal -->
-  <div class="modal" id="filesModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 class="modal-title">Project Files</h2>
-        <button class="modal-close" onclick="closeModal('filesModal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="currentProjectFilesId">
-        <div class="form-group" style="display:flex; gap:12px; margin-bottom: 24px;">
-          <input type="file" id="fileUploadInput" style="flex:1;">
-          <button class="btn btn-primary" onclick="uploadProjectFile()">Upload</button>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>File Name</th>
-                <th>Uploaded By</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="projectFilesTable"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Project Comments Modal -->
-  <div class="modal" id="commentsModal">
-    <div class="modal-content" style="max-width: 500px;">
-      <div class="modal-header">
-        <h2 class="modal-title">Project Collaboration</h2>
-        <button class="modal-close" onclick="closeModal('commentsModal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="currentCommentProjectId">
-        <div id="commentsList" style="max-height: 400px; overflow-y: auto; padding: 10px;">
-          <!-- Comments will be rendered here -->
-        </div>
-        <div class="comment-input-area">
-          <textarea id="commentText" rows="2" placeholder="Add a comment or feedback..."></textarea>
-          <button class="btn btn-primary" onclick="postComment()" style="align-self: flex-end;">Send</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- View Milestone Modal -->
-  <div class="modal" id="milestoneModal">
-    <div class="modal-content" style="max-width: 500px;">
-      <div class="modal-header">
-        <h2 class="modal-title">Milestone Details</h2>
-        <button class="modal-close" onclick="closeModal('milestoneModal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <h3 id="msTitleView" style="margin-bottom:8px; font-weight: 800;"></h3>
-        <p id="msDateView" style="font-size:0.85rem; color:var(--body); opacity:0.7; margin-bottom:20px;"></p>
-        
-        <div style="margin-bottom:20px; background: #f8fafc; padding: 16px; border-radius: 12px;">
-            <label style="font-weight:700; font-size:0.7rem; color:var(--title); text-transform:uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px;">Current Progress</label>
-            <div style="font-size:1.8rem; font-weight:900; color:var(--primary);" id="msProgressView"></div>
-        </div>
-
-        <div style="margin-bottom:20px;">
-            <label style="font-weight:700; font-size:0.7rem; color:var(--title); text-transform:uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Phase Description</label>
-            <p id="msDescView" style="font-size:0.95rem; line-height:1.6; color:var(--body);"></p>
-        </div>
-
-        <div class="milestone-action-links" style="display:flex; gap:12px; margin-top:24px;">
-            <!-- Links and files injected here -->
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" onclick="closeModal('milestoneModal')" style="width: 100%;">Got it</button>
-      </div>
-    </div>
-  </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
@@ -129,18 +48,82 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Projects Page -->
       <div id="page-projects">
         <div class="page-header">
           <h1 class="page-title">My Projects</h1>
         </div>
         <div id="projectsList"></div>
       </div>
+    </main>
+  </div>
 
-      </main>
+  <!-- Modals moved to bottom of body -->
+  <!-- Project Files Modal -->
+  <div class="modal" id="filesModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Project Files</h2>
+        <button class="modal-close" onclick="closeModal('filesModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="currentProjectFilesId">
+        <div id="projectFilesTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Comments Modal -->
+  <div class="modal" id="commentsModal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Project Collaboration</h2>
+        <button class="modal-close" onclick="closeModal('commentsModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="currentCommentProjectId">
+        <div id="commentsList" style="max-height: 400px; overflow-y: auto; padding: 10px;"></div>
+        <div class="comment-input-area">
+          <textarea id="commentText" rows="2" placeholder="Add a comment or feedback..."></textarea>
+          <button class="btn btn-primary btn-send-comment" onclick="postComment()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Milestone Modal -->
+  <div class="modal" id="milestoneModal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Milestone Details</h2>
+        <button class="modal-close" onclick="closeModal('milestoneModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <h3 id="msTitleView" style="margin-bottom:8px; font-weight: 800;"></h3>
+        <p id="msDateView" style="font-size:0.85rem; color:var(--body); opacity:0.7; margin-bottom:20px;"></p>
+        <div class="milestone-view-progress">
+          <div class="progress-label">
+            <span>Current Progress</span>
+            <span class="status-badge-view" id="msStatusView">PENDING</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="msProgressFill" style="width:0%"></div>
+          </div>
+          <div style="font-size:1.2rem; font-weight:700; color:var(--title);" id="msProgressView"></div>
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="font-weight:700; font-size:0.7rem; color:var(--title); text-transform:uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Phase Description</label>
+            <p id="msDescView" style="font-size:0.95rem; line-height:1.6; color:var(--body);"></p>
+        </div>
+        <div class="milestone-action-links" style="display:flex; gap:12px; margin-top:24px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('milestoneModal')" style="width: 100%;">Got it</button>
+      </div>
+    </div>
   </div>
 
   <script src="js/client.js"></script>
-
 </body>
 </html>
