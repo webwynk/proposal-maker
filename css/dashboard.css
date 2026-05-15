@@ -233,15 +233,6 @@ body {
   overflow: hidden;
 }
 
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--secondary);
-}
 
 .stat-card:hover {
   transform: translateY(-3px);
@@ -587,25 +578,6 @@ tr:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
-.project-card.status-discovery {
-  border-left: 3px solid #4f46e5;
-}
-
-.project-card.status-design {
-  border-left: 3px solid #d97706;
-}
-
-.project-card.status-development {
-  border-left: 3px solid #2563eb;
-}
-
-.project-card.status-testing {
-  border-left: 3px solid #db2777;
-}
-
-.project-card.status-launched {
-  border-left: 3px solid #059669;
-}
 
 .project-header {
   display: flex;
@@ -800,19 +772,25 @@ tr:hover {
 
 /* Left-border status accent on project card */
 .project-card-saas {
-  border-left: 4px solid var(--border);
-  border-radius: 0 16px 16px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 20px;
+  position: relative;
 }
-.project-card-saas.status-discovery   { border-left-color: #7864f0; }
-.project-card-saas.status-design      { border-left-color: #f59e0b; }
-.project-card-saas.status-development { border-left-color: #3b82f6; }
-.project-card-saas.status-testing     { border-left-color: #ec4899; }
-.project-card-saas.status-launched    { border-left-color: #22c55e; }
+
+.project-card-saas:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
 
 /* Milestone status variants */
-.milestone-card.ms-done    { border-left: 3px solid #22c55e; }
-.milestone-card.ms-active  { border-left: 3px solid #3b82f6; }
-.milestone-card.ms-pending { border-left: 3px solid var(--border); }
+.milestone-card.ms-done    { border-color: var(--success); }
+.milestone-card.ms-active  { border-color: var(--secondary); }
+.milestone-card.ms-pending { border-color: var(--border); }
 .ms-status-icon { width: 18px; height: 18px; margin-bottom: 8px; }
 
 /* Project footer bar */
@@ -855,6 +833,10 @@ tr:hover {
 /* Milestone empty state */
 .milestone-empty {
   grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 40px 20px;
   border: 2px dashed var(--border);
@@ -1492,3 +1474,68 @@ tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ========== Redesign Modal Helpers ========== */
+
+/* Progress Slider (Admin) */
+.progress-slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.progress-slider input[type="range"] {
+  flex: 1;
+  accent-color: var(--secondary);
+}
+.progress-slider-value {
+  font-weight: 700;
+  color: var(--secondary);
+  min-width: 44px;
+  font-size: 1rem;
+}
+
+/* Milestone View Progress (Client) */
+.milestone-view-progress {
+  background: var(--bg);
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+.milestone-view-progress .progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.status-badge-view {
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--border);
+  color: var(--body);
+}
+.progress-bar-container {
+  height: 10px;
+  background: var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--secondary);
+  border-radius: 5px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.progress-bar-fill.active, .progress-bar-fill.ms-active { background: var(--secondary); }
+.progress-bar-fill.done, .progress-bar-fill.ms-done { background: var(--success); }
+.progress-bar-fill.pending, .progress-bar-fill.ms-pending { background: var(--muted); }
+
+.status-badge-view.active, .status-badge-view.ms-active { background: rgba(120, 100, 240, 0.1); color: var(--secondary); }
+.status-badge-view.done, .status-badge-view.ms-done { background: rgba(34, 197, 94, 0.1); color: var(--success); }
+.status-badge-view.pending, .status-badge-view.ms-pending { background: var(--bg); color: var(--muted); }
+

@@ -898,33 +898,35 @@ document.addEventListener('DOMContentLoaded', () => {
                   <p>Break this project into phases to track progress</p>
                   <button class="btn btn-primary" onclick="openMilestoneModal(${p.id})" style="padding:8px 16px; font-size:0.8rem;">+ Add First Milestone</button>
                 </div>
-              ` : milestones.map((m, idx) => `
-                <div class="milestone-card ${getMilestoneStatusClass(m.progress)}" onclick="openMilestoneModal(${p.id}, ${idx})">
-                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                    ${getStatusIcon(m.progress)}
-                    <span style="font-size:0.65rem; font-weight:700; letter-spacing:0.05em; color:var(--muted);">${getStatusLabel(m.progress)}</span>
-                  </div>
-                  <div class="milestone-card-title">${m.title}</div>
-                  ${m.description ? `<div class="milestone-card-desc">${m.description}</div>` : ''}
-                  <div style="display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:12px;">
-                    <div style="flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
-                      <div style="width:${m.progress}%; height:100%; background:${parseInt(m.progress) === 100 ? '#22c55e' : 'var(--secondary)'}; border-radius:3px;"></div>
+              ` : `
+                ${milestones.map((m, idx) => `
+                  <div class="milestone-card ${getMilestoneStatusClass(m.progress)}" onclick="openMilestoneModal(${p.id}, ${idx})">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                      ${getStatusIcon(m.progress)}
+                      <span style="font-size:0.65rem; font-weight:700; letter-spacing:0.05em; color:var(--muted);">${getStatusLabel(m.progress)}</span>
                     </div>
-                    <span style="font-size:0.75rem; font-weight:600; color:var(--body); min-width:36px;">${m.progress}%</span>
-                  </div>
-                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
-                    <span style="font-size:0.7rem; color:var(--muted);">Due: ${m.end_date ? new Date(m.end_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'TBD'}</span>
-                    <div style="display:flex; gap:6px;">
-                      ${m.link ? `<a href="${m.link}" target="_blank" title="Resource Link" onclick="event.stopPropagation()" style="color:var(--body);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
-                      ${m.file ? `<span title="File: ${m.file}" onclick="event.stopPropagation()" style="color:var(--body);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>` : ''}
+                    <div class="milestone-card-title">${m.title}</div>
+                    ${m.description ? `<div class="milestone-card-desc">${m.description}</div>` : ''}
+                    <div style="display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:12px;">
+                      <div style="flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
+                        <div style="width:${m.progress}%; height:100%; background:${parseInt(m.progress) === 100 ? '#22c55e' : 'var(--secondary)'}; border-radius:3px;"></div>
+                      </div>
+                      <span style="font-size:0.75rem; font-weight:600; color:var(--body); min-width:36px;">${m.progress}%</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
+                      <span style="font-size:0.7rem; color:var(--muted);">Due: ${m.end_date ? new Date(m.end_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'TBD'}</span>
+                      <div style="display:flex; gap:6px;">
+                        ${m.link ? `<a href="${m.link}" target="_blank" title="Resource Link" onclick="event.stopPropagation()" style="color:var(--body);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
+                        ${m.file ? `<span title="File: ${m.file}" onclick="event.stopPropagation()" style="color:var(--body);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>` : ''}
+                      </div>
                     </div>
                   </div>
+                `).join('')}
+                <div class="add-milestone-saas" onclick="openMilestoneModal(${p.id})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                  <span>Add a Milestone</span>
                 </div>
-              `).join('')}
-              <div class="add-milestone-saas" onclick="openMilestoneModal(${p.id})">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                <span>Add a Milestone</span>
-              </div>
+              `}
             </div>
           </div>
 
