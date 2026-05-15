@@ -562,9 +562,15 @@ document.addEventListener('DOMContentLoaded', () => {
         priority: document.getElementById('projectPriority').value,
         start_date: document.getElementById('projectStartDate').value,
         end_date: document.getElementById('projectEndDate').value,
-        notes: document.getElementById('projectNotes').value
-
+        notes: document.getElementById('projectNotes').value,
+        milestones: getMilestonesFromForm()
       };
+
+      // Auto-calculate progress based on milestones if editing
+      if (data.milestones.length > 0) {
+        const total = data.milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0);
+        data.progress = Math.min(100, Math.round(total / data.milestones.length));
+      }
 
       const id = document.getElementById('projectId').value;
       if (id) {

@@ -11,6 +11,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const BASE_URL = process.env.BASE_URL || 'https://proposal.webwynk.com';
+
 // Helper to log emails in the database
 const logEmail = async (recipient, subject, type, referenceId = null) => {
   try {
@@ -58,7 +60,7 @@ const buttonStyles = (color = '#2563eb') => `
 
 const sendInvoiceEmail = async (clientEmail, invoice, clientName) => {
   try {
-    const viewUrl = `http://localhost:3000/invoice.html?id=${invoice.id}&view=true`;
+    const viewUrl = `${BASE_URL}/invoice.html?id=${invoice.id}&view=true`;
     const subject = `New Invoice from WebWynk: #${invoice.invoice_number}`;
     
     await transporter.sendMail({
@@ -93,7 +95,7 @@ const sendInvoiceEmail = async (clientEmail, invoice, clientName) => {
 
 const sendProposalEmail = async (clientEmail, proposal, clientName) => {
   try {
-    const viewUrl = `http://localhost:3000/proposal.html?id=${proposal.id}&view=true`;
+    const viewUrl = `${BASE_URL}/proposal.html?id=${proposal.id}&view=true`;
     const subject = `Project Proposal from WebWynk: ${proposal.project_title}`;
     
     await transporter.sendMail({
@@ -145,7 +147,7 @@ const sendProjectUpdateEmail = async (clientEmail, project, clientName, updateCo
               ${updateContent ? `<p><strong>Latest Update:</strong> ${updateContent}</p>` : ''}
             </div>
             <center>
-              <a href="http://localhost:3000/client.html" style="${buttonStyles('#6366f1')}">Track Progress</a>
+              <a href="${BASE_URL}/client.html" style="${buttonStyles('#6366f1')}">Track Progress</a>
             </center>
           </div>
         </div>
@@ -178,7 +180,7 @@ const sendMilestoneEmail = async (clientEmail, project, clientName, milestoneNam
               <p style="margin:5px 0 0 0;"><strong>Status:</strong> ${isCompleted ? 'Completed' : 'Planned'}</p>
             </div>
             <center>
-              <a href="http://localhost:3000/client.html" style="${buttonStyles('#f59e0b')}">View Dashboard</a>
+              <a href="${BASE_URL}/client.html" style="${buttonStyles('#f59e0b')}">View Dashboard</a>
             </center>
           </div>
         </div>
