@@ -644,4 +644,33 @@ if (process.env.NODE_ENV !== 'production') {
   seedAdmin().catch(console.error);
 }
 
+// DEBUG: Test Email Logging
+app.get('/api/debug/test-log', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const testLog = {
+      recipient_email: 'debug@webwynk.com',
+      subject: 'Debug Test Log',
+      email_type: 'debug',
+      reference_id: '0',
+      sent_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase.from('email_logs').insert([testLog]).select();
+    
+    if (error) {
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message, 
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+    }
+    
+    res.json({ success: true, message: 'Log inserted successfully', data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = app;
