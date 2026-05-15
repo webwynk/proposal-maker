@@ -237,17 +237,22 @@ app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) =
   if (error) return res.status(500).json({ error: 'Failed to update project' });
 
   // Handle Milestone Emails
-  const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
-  if (client && milestones && Array.isArray(milestones)) {
-    // Check for newly completed milestones or new milestones
-    milestones.forEach(m => {
-      const oldM = oldMilestones.find(om => om.id === m.id || (om.title === m.title && om.id === undefined));
-      if (m.completed && (!oldM || !oldM.completed)) {
-        sendMilestoneEmail(client.email, updated, client.name, m.title, true);
-      } else if (!oldM) {
-        sendMilestoneEmail(client.email, updated, client.name, m.title, false);
-      }
-    });
+  try {
+    const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
+    if (client && milestones && Array.isArray(milestones)) {
+      milestones.forEach(m => {
+        const oldM = oldMilestones.find(om => om.id === m.id || (om.title === m.title && om.id === undefined));
+        if (m.completed && (!oldM || !oldM.completed)) {
+          console.log(`[Server] Triggering milestone completed email for: ${m.title}`);
+          sendMilestoneEmail(client.email, updated, client.name, m.title, true).catch(err => console.error('[Server] Milestone email failed:', err));
+        } else if (!oldM) {
+          console.log(`[Server] Triggering new milestone email for: ${m.title}`);
+          sendMilestoneEmail(client.email, updated, client.name, m.title, false).catch(err => console.error('[Server] Milestone email failed:', err));
+        }
+      });
+    }
+  } catch (err) {
+    console.error('[Server] Failed to process milestone emails:', err);
   }
 
   res.json(updated);
@@ -424,13 +429,19 @@ app.post('/api/proposals', authenticateToken, requireAdmin, async (req, res) => 
     return res.status(500).json({ error: 'Failed to create proposal' });
   }
 
-  // Send Proposal Email
+  // Send Proposal Email (Async)
   if (newProposal) {
-    supabase.from('users').select('email, name').eq('id', client_id).single()
-      .then(({ data: client }) => {
-        if (client) sendProposalEmail(client.email, newProposal, client.name).catch(console.error);
-      })
-      .catch(console.error);
+    try {
+      const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
+      if (client) {
+        // We don't await the email so the response stays fast, but we catch errors
+        sendProposalEmail(client.email, newProposal, client.name).catch(err => console.error('[Server] Proposal email failed:', err));
+      } else {
+        console.warn(`[Server] Could not find client with ID ${client_id} for proposal email`);
+      }
+    } catch (err) {
+      console.error('[Server] Failed to fetch client for proposal email:', err);
+    }
   }
 
   res.json(newProposal);

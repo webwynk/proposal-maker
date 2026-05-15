@@ -94,10 +94,13 @@ const sendInvoiceEmail = async (clientEmail, invoice, clientName) => {
 };
 
 const sendProposalEmail = async (clientEmail, proposal, clientName) => {
+  console.log(`[Email] Attempting to send proposal email to ${clientEmail} for project: ${proposal.project_title}`);
   try {
     const viewUrl = `${BASE_URL}/proposal.html?id=${proposal.id}&view=true`;
     const subject = `Project Proposal from WebWynk: ${proposal.project_title}`;
     
+    console.log(`[Email] View URL: ${viewUrl}`);
+
     await transporter.sendMail({
       from: `"WebWynk" <${process.env.SMTP_USER}>`,
       to: clientEmail,
@@ -119,9 +122,10 @@ const sendProposalEmail = async (clientEmail, proposal, clientName) => {
         </div>
       `,
     });
+    console.log(`[Email] Proposal email sent successfully to ${clientEmail}`);
     await logEmail(clientEmail, subject, 'proposal', proposal.id);
   } catch (error) {
-    console.error('Error sending proposal email:', error);
+    console.error('[Email] Error sending proposal email:', error);
   }
 };
 
