@@ -645,7 +645,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // DEBUG: Test Email Logging
-app.get('/api/debug/test-log', authenticateToken, requireAdmin, async (req, res) => {
+app.get('/api/debug/test-log', async (req, res) => {
   try {
     const testLog = {
       recipient_email: 'debug@webwynk.com',
