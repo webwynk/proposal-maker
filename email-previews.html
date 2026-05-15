@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebWynk Email Template Previews</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7fa; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .preview-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 40px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .preview-header { background: #1e293b; color: white; padding: 15px 25px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .template-body { padding: 40px; background: #ffffff; }
+        .badge { background: #3b82f6; color: white; padding: 4px 12px; border-radius: 99px; font-size: 12px; text-transform: uppercase; }
+        
+        /* Email Styles Mirror */
+        .email-wrapper { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; }
+        .email-header { background-color: #2563eb; padding: 30px; text-align: center; }
+        .email-content { padding: 30px; }
+        .email-footer { background-color: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
+        .button { display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+        .info-box { background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+        .info-row:last-child { border: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Email Template Previews</h1>
+        <p>These templates are designed to be modern, professional, and deliverable (spam-free).</p>
+
+        <!-- INVOICE TEMPLATE -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <span>Invoice Email Template</span>
+                <span class="badge">Invoice</span>
+            </div>
+            <div class="template-body">
+                <div class="email-wrapper">
+                    <div class="email-header">
+                        <h1 style="color: white; margin: 0;">WebWynk</h1>
+                    </div>
+                    <div class="email-content">
+                        <h2>New Invoice #INV-1001</h2>
+                        <p>Hello John Doe,</p>
+                        <p>We've generated a new invoice for your project. You can view the details and complete your payment using the link below.</p>
+                        
+                        <div class="info-box">
+                            <div class="info-row"><span>Amount Due:</span><strong>₹25,000.00</strong></div>
+                            <div class="info-row"><span>Due Date:</span><strong>Oct 25, 2026</strong></div>
+                            <div class="info-row"><span>Status:</span><strong style="color: #d97706;">Pending</strong></div>
+                        </div>
+
+                        <center>
+                            <a href="http://localhost:3000/invoice.html?id=1&view=true" class="button">View & Pay Invoice</a>
+                        </center>
+
+                        <p>If you have any questions, feel free to reply to this email.</p>
+                    </div>
+                    <div class="email-footer">
+                        &copy; 2026 WebWynk Solutions. All rights reserved.<br>
+                        123 Tech Park, Digital City.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROPOSAL TEMPLATE -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <span>Project Proposal Template</span>
+                <span class="badge">Proposal</span>
+            </div>
+            <div class="template-body">
+                <div class="email-wrapper">
+                    <div class="email-header" style="background-color: #10b981;">
+                        <h1 style="color: white; margin: 0;">WebWynk</h1>
+                    </div>
+                    <div class="email-content">
+                        <h2>Project Proposal: E-commerce Website</h2>
+                        <p>Hello Jane Smith,</p>
+                        <p>We are excited to share our detailed proposal for your upcoming project. We've outlined the strategy, timeline, and deliverables based on our recent discussion.</p>
+                        
+                        <div class="info-box">
+                            <p><strong>Project:</strong> E-commerce Modernization</p>
+                            <p><strong>Estimated Timeline:</strong> 6 Weeks</p>
+                        </div>
+
+                        <center>
+                            <a href="http://localhost:3000/proposal.html?id=1&view=true" class="button" style="background-color: #10b981;">Review Proposal</a>
+                        </center>
+
+                        <p>Looking forward to working together!</p>
+                    </div>
+                    <div class="email-footer">
+                        &copy; 2026 WebWynk Solutions. All rights reserved.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROJECT MILESTONE TEMPLATE -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <span>Milestone Update Template</span>
+                <span class="badge">Milestone</span>
+            </div>
+            <div class="template-body">
+                <div class="email-wrapper">
+                    <div class="email-header" style="background-color: #6366f1;">
+                        <h1 style="color: white; margin: 0;">WebWynk</h1>
+                    </div>
+                    <div class="email-content">
+                        <h2>Milestone Completed! 🎉</h2>
+                        <p>Hello Team,</p>
+                        <p>Great news! We have successfully completed a major milestone in your project.</p>
+                        
+                        <div class="info-box">
+                            <p><strong>Project:</strong> Mobile App Development</p>
+                            <p><strong>Milestone:</strong> Backend API Integration</p>
+                            <p><strong>Status:</strong> 100% Completed</p>
+                        </div>
+
+                        <center>
+                            <a href="http://localhost:3000/client.html" class="button" style="background-color: #6366f1;">Track Progress</a>
+                        </center>
+
+                        <p>Check your dashboard for full details and next steps.</p>
+                    </div>
+                    <div class="email-footer">
+                        &copy; 2026 WebWynk Solutions. All rights reserved.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

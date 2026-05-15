@@ -207,6 +207,11 @@ app.post('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
   }]).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to create project' });
+
+  // Send Project Initiation Email
+  const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
+  if (client) sendProjectUpdateEmail(client.email, newProject, client.name, "Your project has been successfully initiated.");
+
   res.json(newProject);
 });
 
@@ -226,6 +231,24 @@ app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) =
   }).eq('id', id).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to update project' });
+
+  // Handle Milestone Emails
+  const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
+  if (client && milestones && Array.isArray(milestones)) {
+    const { data: oldProject } = await supabase.from('projects').select('milestones').eq('id', id).single();
+    const oldMilestones = oldProject?.milestones || [];
+    
+    // Check for newly completed milestones or new milestones
+    milestones.forEach(m => {
+      const oldM = oldMilestones.find(om => om.id === m.id);
+      if (m.completed && (!oldM || !oldM.completed)) {
+        sendMilestoneEmail(client.email, updated, client.name, m.title, true);
+      } else if (!oldM) {
+        sendMilestoneEmail(client.email, updated, client.name, m.title, false);
+      }
+    });
+  }
+
   res.json(updated);
 });
 
@@ -396,6 +419,11 @@ app.post('/api/proposals', authenticateToken, requireAdmin, async (req, res) => 
   }]).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to create proposal' });
+
+  // Send Proposal Email
+  const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
+  if (client) sendProposalEmail(client.email, newProposal, client.name);
+
   res.json(newProposal);
 });
 
@@ -471,6 +499,12 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) =>
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
+});
+
+app.get('/api/admin/email-logs', authenticateToken, requireAdmin, async (req, res) => {
+  const { data: logs, error } = await supabase.from('email_logs').select('*').order('sent_at', { ascending: false });
+  if (error) return res.status(500).json({ error: 'Failed to fetch email logs' });
+  res.json(logs);
 });
 
 // Feature 7: Project Links API
