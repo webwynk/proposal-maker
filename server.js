@@ -651,7 +651,7 @@ app.get('/api/debug/test-log', async (req, res) => {
       recipient_email: 'debug@webwynk.com',
       subject: 'Debug Test Log',
       email_type: 'debug',
-      reference_id: '0',
+      reference_id: null,
       sent_at: new Date().toISOString()
     };
     

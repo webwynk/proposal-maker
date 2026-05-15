@@ -16,11 +16,14 @@ const BASE_URL = process.env.BASE_URL || 'https://proposal.webwynk.com';
 // Helper to log emails in the database
 const logEmail = async (recipient, subject, type, referenceId = null) => {
   try {
+    // Regex to check if referenceId is a valid UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(referenceId));
+    
     const { error } = await supabase.from('email_logs').insert([{
       recipient_email: recipient,
       subject: subject,
       email_type: type,
-      reference_id: referenceId ? String(referenceId) : null,
+      reference_id: isUUID ? String(referenceId) : null,
       sent_at: new Date().toISOString()
     }]);
     if (error) {
