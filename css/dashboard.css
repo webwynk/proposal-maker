@@ -31,19 +31,18 @@
   justify-content: flex-end;
   align-items: center;
   padding: 16px 32px;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 90;
-  background: rgba(245, 245, 250, 0.8);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(228, 228, 231, 0.5);
+  right: 0;
+  z-index: 1000;
+  pointer-events: none; /* Let clicks pass through to content behind if needed */
 }
 
 /* ========== Notifications ========== */
 
 .notif-container {
   position: relative;
-  margin-left: auto;
+  pointer-events: auto; /* Re-enable clicks for the bell */
 }
 
 .notif-bell-btn {
