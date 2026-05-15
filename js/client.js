@@ -4,6 +4,113 @@ document.addEventListener('DOMContentLoaded', () => {
     let invoices = [];
     let proposals = [];
     let projects = [];
+    let notifications = [];
+
+    // Notifications Logic
+    const notifBtn = document.getElementById('notifBtn');
+    const notifDropdown = document.getElementById('notifDropdown');
+    const notifList = document.getElementById('notifList');
+    const notifBadge = document.getElementById('notifBadge');
+    const markAllReadBtn = document.getElementById('markAllRead');
+
+    if (notifBtn) {
+      notifBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        notifDropdown.classList.toggle('show');
+      });
+    }
+
+    document.addEventListener('click', () => {
+      if (notifDropdown) notifDropdown.classList.remove('show');
+    });
+
+    if (notifDropdown) {
+      notifDropdown.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    async function loadNotifications() {
+      const data = await apiCall('/api/notifications');
+      if (Array.isArray(data)) {
+        notifications = data;
+        renderNotifications();
+      }
+    }
+
+    function renderNotifications() {
+      if (!notifList) return;
+
+      const unreadCount = notifications.filter(n => !n.is_read).length;
+      if (unreadCount > 0) {
+        notifBadge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+        notifBadge.classList.remove('hidden');
+      } else {
+        notifBadge.classList.add('hidden');
+      }
+
+      if (notifications.length === 0) {
+        notifList.innerHTML = `
+          <div class="notif-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <p>All caught up! ✨</p>
+          </div>
+        `;
+        return;
+      }
+
+      notifList.innerHTML = notifications.map(n => {
+        const icon = getNotifIcon(n.type);
+        return `
+          <div class="notif-item ${!n.is_read ? 'unread' : ''}" onclick="handleNotifClick('${n.id}', '${n.link}')">
+            <div class="notif-icon ${n.type}">${icon}</div>
+            <div class="notif-content">
+              <div class="notif-title">${n.title}</div>
+              <div class="notif-msg">${n.message}</div>
+              <div class="notif-time">${formatTime(n.created_at)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getNotifIcon(type) {
+      switch(type) {
+        case 'milestone': return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+        case 'invoice': return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+        case 'project': return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+        case 'proposal': return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+        default: return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+      }
+    }
+
+    function formatTime(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return `${diffDays}d ago`;
+    }
+
+    window.handleNotifClick = async (id, link) => {
+      await apiCall(`/api/notifications/${id}/read`, { method: 'PUT' });
+      if (link) window.location.href = link;
+      else loadNotifications();
+    };
+
+    if (markAllReadBtn) {
+      markAllReadBtn.addEventListener('click', async () => {
+        await apiCall('/api/notifications/read-all', { method: 'PUT' });
+        loadNotifications();
+      });
+    }
+
+    // Initialize & Poll
+    loadNotifications();
+    setInterval(loadNotifications, 30000);
 
     // Pagination State
     const pagination = {

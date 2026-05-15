@@ -134,6 +134,8 @@ app.post('/api/invoices', authenticateToken, requireAdmin, async (req, res) => {
   const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
   if (client) sendInvoiceEmail(client.email, newInvoice, client.name);
   
+  createNotification(client_id, 'New Invoice', `Invoice ${invoice_number} has been generated.`, 'invoice', `/invoice.html?id=${newInvoice.id}&view=true`);
+  
   res.json(newInvoice);
 });
 
@@ -211,6 +213,8 @@ app.post('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
   // Send Project Initiation Email
   const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
   if (client) sendProjectUpdateEmail(client.email, newProject, client.name, "Your project has been successfully initiated.");
+  
+  createNotification(client_id, 'New Project Assigned', `You have been assigned to: ${name}`, 'project', `/client-projects.html`);
 
   res.json(newProject);
 });
@@ -225,8 +229,8 @@ app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) =
     linksToSave = currentProject?.external_links || [];
   }
 
-  // Fetch old project state BEFORE update for milestone comparison
-  const { data: oldProject } = await supabase.from('projects').select('milestones').eq('id', id).single();
+  // Fetch old project state BEFORE update for status and milestone comparison
+  const { data: oldProject } = await supabase.from('projects').select('status, milestones').eq('id', id).single();
   const oldMilestones = oldProject?.milestones || [];
 
   const { data: updated, error } = await supabase.from('projects').update({
@@ -250,15 +254,23 @@ app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) =
         if (isNowCompleted && !wasCompleted) {
           console.log(`[Server] Triggering milestone completed email for: ${m.title}`);
           sendMilestoneEmail(client.email, updated, client.name, m.title, true).catch(err => console.error('[Server] Milestone email failed:', err));
+          createNotification(client_id, 'Milestone Completed', `Milestone "${m.title}" is now completed!`, 'milestone', `/client-projects.html`);
         } else if (!oldM) {
           // New milestone created (Started)
           console.log(`[Server] Triggering new milestone email for: ${m.title}`);
           sendMilestoneEmail(client.email, updated, client.name, m.title, false).catch(err => console.error('[Server] Milestone email failed:', err));
+          createNotification(client_id, 'Milestone Started', `Work has started on: "${m.title}"`, 'milestone', `/client-projects.html`);
         }
       });
     }
   } catch (err) {
-    console.error('[Server] Failed to process milestone emails:', err);
+    console.error('[Server] Failed to process milestone notifications:', err);
+  }
+
+  // Project Status Change Notification
+  if (status && oldProject && status !== oldProject.status) {
+    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+    createNotification(client_id, 'Project Status Updated', `${name} is now: ${statusLabel}`, 'project', `/client-projects.html`);
   }
 
   res.json(updated);
@@ -334,6 +346,8 @@ app.post('/api/projects/:id/updates', authenticateToken, requireAdmin, async (re
     sendProjectUpdateEmail(project.users.email, project, project.users.name, content);
   }
   
+  createNotification(project.client_id, 'Project Update', `New update for project: ${project.name}`, 'project', `/client-projects.html`);
+
   res.json(formattedUpdate);
 });
 
@@ -442,6 +456,7 @@ app.post('/api/proposals', authenticateToken, requireAdmin, async (req, res) => 
       if (client) {
         // We don't await the email so the response stays fast, but we catch errors
         sendProposalEmail(client.email, newProposal, client.name).catch(err => console.error('[Server] Proposal email failed:', err));
+        createNotification(client_id, 'New Proposal Ready', `Review your proposal for: ${project_title}`, 'proposal', `/proposal.html?id=${newProposal.id}&view=true`);
       } else {
         console.warn(`[Server] Could not find client with ID ${client_id} for proposal email`);
       }
@@ -643,6 +658,58 @@ if (process.env.NODE_ENV !== 'production') {
 } else {
   seedAdmin().catch(console.error);
 }
+
+// ==================== NOTIFICATIONS ====================
+
+const createNotification = async (userId, title, message, type, link = null) => {
+  try {
+    const { error } = await supabase.from('notifications').insert([{
+      user_id: userId,
+      title,
+      message,
+      type,
+      link,
+      created_at: new Date().toISOString()
+    }]);
+    if (error) console.error('[Notification] Error:', error.message);
+  } catch (err) {
+    console.error('[Notification] Critical Error:', err);
+  }
+};
+
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  const { data: notifications, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', req.user.id)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) return res.status(500).json({ error: 'Failed to fetch notifications' });
+  res.json(notifications);
+});
+
+app.put('/api/notifications/read-all', authenticateToken, async (req, res) => {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('user_id', req.user.id)
+    .eq('is_read', false);
+
+  if (error) return res.status(500).json({ error: 'Failed to update notifications' });
+  res.json({ message: 'All notifications marked as read' });
+});
+
+app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('id', req.params.id)
+    .eq('user_id', req.user.id);
+
+  if (error) return res.status(500).json({ error: 'Failed to mark notification as read' });
+  res.json({ message: 'Notification marked as read' });
+});
 
 
 
