@@ -589,7 +589,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const clientFiles = files.filter(f => f.uploader_role === 'client');
 
       adminList.innerHTML = adminFiles.map(renderFile).join('') || '<div class="empty-state">No admin files uploaded</div>';
-      clientList.innerHTML = clientFiles.map(renderFile).join('') || '<div class="empty-state">No client files uploaded</div>';
+      clientList.innerHTML = clientFiles.map(renderFile).join('') || '<div class="empty-state">No files uploaded by you</div>';
+
     }
 
     async function loadProjectLinks(id) {
@@ -597,15 +598,38 @@ document.addEventListener('DOMContentLoaded', () => {
       const list = document.getElementById('projectLinksList');
       if (!list || !Array.isArray(links)) return;
 
-      list.innerHTML = links.map(l => `
-        <div class="link-item">
-          <div class="link-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
-          <div class="link-title">
-            <a href="${l.url}" target="_blank" style="color:inherit; text-decoration:none;">${l.title}</a>
+      list.innerHTML = links.map(l => {
+        const isMyLink = String(l.created_by) === String(user.id);
+        return `
+          <div class="link-item">
+            <div class="link-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+            <div class="link-title">
+              <a href="${l.url}" target="_blank" style="color:inherit; text-decoration:none;">${l.title}</a>
+              <div style="font-size:0.7rem; color:var(--muted); margin-top:2px;">Shared by ${l.creator_name || 'User'} (${isMyLink ? 'You' : l.creator_role})</div>
+            </div>
+            ${isMyLink ? `
+            <div class="link-actions">
+              <button class="btn-icon" style="color:#ef4444;" onclick="deleteProjectLink(${l.id}, ${id})">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              </button>
+            </div>
+            ` : ''}
           </div>
-        </div>
-      `).join('') || '<div class="empty-state">No links shared yet</div>';
+        `;
+      }).join('') || '<div class="empty-state">No links shared yet</div>';
     }
+
+    window.deleteProjectLink = async (linkId, projectId) => {
+      if (!confirm('Remove this link?')) return;
+      const res = await apiCall(`/api/projects/${projectId}/links/${linkId}`, { method: 'DELETE' });
+      if (res && !res.error) {
+        loadProjectLinks(projectId);
+      } else {
+        alert('Error deleting link: ' + (res?.error || 'Unknown error'));
+      }
+    };
+
+
 
     window.addProjectLink = async () => {
       const id = document.getElementById('currentProjectFilesId').value;
@@ -621,8 +645,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('linkTitle').value = '';
         document.getElementById('linkUrl').value = '';
         loadProjectLinks(id);
+      } else {
+        alert('Error saving link: ' + (res?.error || 'Unknown error'));
       }
     };
+
 
     window.uploadProjectFile = async () => {
       const id = document.getElementById('currentProjectFilesId').value;

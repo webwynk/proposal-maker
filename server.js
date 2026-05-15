@@ -214,14 +214,21 @@ app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) =
   const { id } = req.params;
   const { client_id, name, project_type, status, progress, milestones, notes, priority, start_date, end_date, external_links } = req.body;
   
+  let linksToSave = external_links;
+  if (linksToSave === undefined) {
+    const { data: currentProject } = await supabase.from('projects').select('external_links').eq('id', id).single();
+    linksToSave = currentProject?.external_links || [];
+  }
+
   const { data: updated, error } = await supabase.from('projects').update({
     client_id, name, project_type, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes,
-    priority: priority || 'Medium', start_date, end_date, external_links: external_links || [], updated_at: new Date()
+    priority: priority || 'Medium', start_date, end_date, external_links: linksToSave, updated_at: new Date()
   }).eq('id', id).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to update project' });
   res.json(updated);
 });
+
 
 app.delete('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { error } = await supabase.from('projects').delete().eq('id', req.params.id);
@@ -469,30 +476,90 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) =>
 // Feature 7: Project Links API
 app.get('/api/projects/:id/links', authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { data: links, error } = await supabase.from('project_links').select('*').eq('project_id', id).order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: 'Failed to fetch links' });
-  res.json(links);
+  const { data: project, error } = await supabase.from('projects').select('external_links, client_id').eq('id', id).single();
+  
+  if (error || !project) return res.status(404).json({ error: 'Project not found' });
+  if (req.user.role === 'client' && project.client_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+
+  let links = project.external_links;
+  if (typeof links === 'string') {
+    try { links = JSON.parse(links); } catch { links = []; }
+  }
+  res.json(Array.isArray(links) ? links : []);
 });
+
+
+
 
 app.post('/api/projects/:id/links', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { title, url } = req.body;
   if (!title || !url) return res.status(400).json({ error: 'Title and URL required' });
 
-  const { data: newLink, error } = await supabase.from('project_links').insert([{
-    project_id: id, title, url
-  }]).select().single();
+  // Fetch current links
+  const { data: project, error: fetchError } = await supabase.from('projects').select('external_links, client_id').eq('id', id).single();
+  if (fetchError || !project) return res.status(404).json({ error: 'Project not found' });
+  if (req.user.role === 'client' && project.client_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
 
-  if (error) return res.status(500).json({ error: 'Failed to save link' });
+  let links = project.external_links;
+  if (typeof links === 'string') {
+    try { links = JSON.parse(links); } catch { links = []; }
+  }
+  if (!Array.isArray(links)) links = [];
+
+  const newLink = {
+    id: Date.now(),
+    title,
+    url,
+    creator_name: req.user.name,
+    creator_role: req.user.role,
+    created_by: req.user.id,
+    created_at: new Date().toISOString()
+  };
+
+  const updatedLinks = [newLink, ...links];
+  const { error: updateError } = await supabase.from('projects').update({ external_links: updatedLinks }).eq('id', id);
+
+  if (updateError) {
+    console.error('Link Save Error:', updateError);
+    return res.status(500).json({ error: 'Failed to save link' });
+  }
+
   res.json(newLink);
 });
 
+
+
 app.delete('/api/projects/:projectId/links/:linkId', authenticateToken, async (req, res) => {
   const { projectId, linkId } = req.params;
-  const { error } = await supabase.from('project_links').delete().eq('id', linkId).eq('project_id', projectId);
-  if (error) return res.status(500).json({ error: 'Failed to delete link' });
+  
+  const { data: project, error: fetchError } = await supabase.from('projects').select('external_links, client_id').eq('id', projectId).single();
+  if (fetchError || !project) return res.status(404).json({ error: 'Project not found' });
+
+  let links = project.external_links;
+  if (typeof links === 'string') {
+    try { links = JSON.parse(links); } catch { links = []; }
+  }
+  if (!Array.isArray(links)) links = [];
+
+  const linkToDelete = links.find(l => String(l.id) === String(linkId));
+
+  
+  if (!linkToDelete) return res.status(404).json({ error: 'Link not found' });
+
+  // Permissions
+  if (req.user.role !== 'admin' && String(linkToDelete.created_by) !== String(req.user.id)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const updatedLinks = links.filter(l => String(l.id) !== String(linkId));
+  const { error: updateError } = await supabase.from('projects').update({ external_links: updatedLinks }).eq('id', projectId);
+
+  if (updateError) return res.status(500).json({ error: 'Failed to delete link' });
   res.json({ message: 'Link deleted' });
 });
+
+
 
 // ==================== SEED ADMIN USER ====================
 

@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('projectStartDate').value = proj.start_date || '';
       document.getElementById('projectEndDate').value = proj.end_date || '';
       document.getElementById('projectNotes').value = proj.notes || '';
-      document.getElementById('projectLinks').value = Array.isArray(proj.external_links) ? JSON.stringify(proj.external_links) : (proj.external_links || '');
+
       
       const container = document.getElementById('milestoneContainer');
       if (container) {
@@ -513,8 +513,8 @@ document.addEventListener('DOMContentLoaded', () => {
         priority: document.getElementById('projectPriority').value,
         start_date: document.getElementById('projectStartDate').value,
         end_date: document.getElementById('projectEndDate').value,
-        notes: document.getElementById('projectNotes').value,
-        external_links: document.getElementById('projectLinks').value
+        notes: document.getElementById('projectNotes').value
+
       };
 
       const id = document.getElementById('projectId').value;
@@ -709,6 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="link-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
           <div class="link-title">
             <a href="${l.url}" target="_blank" style="color:inherit; text-decoration:none;">${l.title}</a>
+            <div style="font-size:0.7rem; color:var(--muted); margin-top:2px;">Shared by ${l.creator_name} (${l.creator_role})</div>
           </div>
           <div class="link-actions">
             <button class="btn-icon" style="color:#ef4444;" onclick="deleteProjectLink(${l.id}, ${id})">
@@ -729,18 +730,27 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         body: JSON.stringify({ title, url })
       });
-      if (res) {
+      
+      if (res && !res.error) {
         document.getElementById('linkTitle').value = '';
         document.getElementById('linkUrl').value = '';
         loadProjectLinks(id);
+      } else {
+        alert('Error saving link: ' + (res?.error || 'Unknown error'));
       }
     };
 
+
     window.deleteProjectLink = async (linkId, projectId) => {
       if (!confirm('Remove this link?')) return;
-      await apiCall(`/api/projects/${projectId}/links/${linkId}`, { method: 'DELETE' });
-      loadProjectLinks(projectId);
+      const res = await apiCall(`/api/projects/${projectId}/links/${linkId}`, { method: 'DELETE' });
+      if (res && !res.error) {
+        loadProjectLinks(projectId);
+      } else {
+        alert('Error deleting link: ' + (res?.error || 'Unknown error'));
+      }
     };
+
 
     async function uploadProjectFile() {
       const id = document.getElementById('currentProjectFilesId').value;
