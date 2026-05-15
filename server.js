@@ -9,7 +9,7 @@ require('dotenv').config();
 
 const { supabase } = require('./database');
 const { generateToken, authenticateToken, requireAdmin, requireClient } = require('./auth');
-const { sendInvoiceEmail, sendProjectUpdateEmail } = require('./email');
+const { sendInvoiceEmail, sendProjectUpdateEmail, sendProposalEmail, sendMilestoneEmail } = require('./email');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -225,6 +225,10 @@ app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) =
     linksToSave = currentProject?.external_links || [];
   }
 
+  // Fetch old project state BEFORE update for milestone comparison
+  const { data: oldProject } = await supabase.from('projects').select('milestones').eq('id', id).single();
+  const oldMilestones = oldProject?.milestones || [];
+
   const { data: updated, error } = await supabase.from('projects').update({
     client_id, name, project_type, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes,
     priority: priority || 'Medium', start_date, end_date, external_links: linksToSave, updated_at: new Date()
@@ -235,12 +239,9 @@ app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) =
   // Handle Milestone Emails
   const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
   if (client && milestones && Array.isArray(milestones)) {
-    const { data: oldProject } = await supabase.from('projects').select('milestones').eq('id', id).single();
-    const oldMilestones = oldProject?.milestones || [];
-    
     // Check for newly completed milestones or new milestones
     milestones.forEach(m => {
-      const oldM = oldMilestones.find(om => om.id === m.id);
+      const oldM = oldMilestones.find(om => om.id === m.id || (om.title === m.title && om.id === undefined));
       if (m.completed && (!oldM || !oldM.completed)) {
         sendMilestoneEmail(client.email, updated, client.name, m.title, true);
       } else if (!oldM) {
@@ -418,11 +419,19 @@ app.post('/api/proposals', authenticateToken, requireAdmin, async (req, res) => 
     proposal_number, client_id, proposal_date: proposal_date || null, project_title, project_overview, scope: scope || [], growth_blueprint, timeline_duration, start_date: start_date || null, delivery_date: delivery_date || null, services: services || [], milestones: milestones || [], currency: currency || 'INR', status: status || 'draft', created_by: req.user.id
   }]).select().single();
 
-  if (error) return res.status(500).json({ error: 'Failed to create proposal' });
+  if (error) {
+    console.error('Proposal Creation Error:', error);
+    return res.status(500).json({ error: 'Failed to create proposal' });
+  }
 
   // Send Proposal Email
-  const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
-  if (client) sendProposalEmail(client.email, newProposal, client.name);
+  if (newProposal) {
+    supabase.from('users').select('email, name').eq('id', client_id).single()
+      .then(({ data: client }) => {
+        if (client) sendProposalEmail(client.email, newProposal, client.name).catch(console.error);
+      })
+      .catch(console.error);
+  }
 
   res.json(newProposal);
 });

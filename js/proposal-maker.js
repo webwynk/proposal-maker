@@ -91,9 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadProposal(id) {
+    if (!id || id === 'undefined') return;
     try {
       const p = await apiCall('/api/proposals/' + id);
-      if (p.error) return alert('Proposal not found');
+      if (!p || p.error) {
+        console.error('Proposal Fetch Error:', p?.error);
+        return alert('Proposal not found or you do not have permission to view it.');
+      }
 
       // Populate basic fields
       $('proposalNumber').value = p.proposal_number || '';
