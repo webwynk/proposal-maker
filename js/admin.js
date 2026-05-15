@@ -669,7 +669,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const file = fileInput.files[0];
       if (!file) return alert('Select a file to upload');
 
-      // Feature 6: Local Validation (Max 5MB, PDF/Images)
+      // Validation
       const MAX_SIZE = 5 * 1024 * 1024;
       if (file.size > MAX_SIZE) return alert('File exceeds 5MB limit');
       
@@ -680,76 +680,79 @@ document.addEventListener('DOMContentLoaded', () => {
       // UI refs
       const progressWrap = document.getElementById('uploadProgressWrap');
       const progressBar  = document.getElementById('uploadProgressBar');
-      const pctLabel     = document.getElementById('uploadPct');
+      const pctLabel     = document.getElementById('uploadProgressPct');
       const statusText   = document.getElementById('uploadStatusText');
       const uploadBtn    = document.getElementById('uploadFileBtn');
       const chip         = document.getElementById('filePreviewChip');
 
       // Show progress, lock button
-      progressWrap.classList.add('show');
-      uploadBtn.classList.add('uploading');
-      uploadBtn.innerHTML = '⏳ Uploading…';
-      progressBar.className = 'upload-progress-bar';
-      progressBar.style.width = '0%';
-      pctLabel.textContent = '0%';
-      statusText.textContent = 'Uploading…';
+      if (progressWrap) progressWrap.classList.add('show');
+      if (uploadBtn) {
+        uploadBtn.classList.add('uploading');
+        uploadBtn.innerHTML = '⏳ Uploading…';
+        uploadBtn.disabled = true;
+      }
+      if (progressBar) {
+        progressBar.style.width = '0%';
+        progressBar.classList.remove('success', 'error');
+      }
+      if (pctLabel) pctLabel.textContent = '0%';
+      if (statusText) statusText.textContent = 'Uploading…';
 
       const formData = new FormData();
       formData.append('file', file);
 
       const xhr = new XMLHttpRequest();
 
-      // Progress event — fires as bytes are sent
+      // Progress event
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
           const pct = Math.round((e.loaded / e.total) * 100);
-          progressBar.style.width = pct + '%';
-          pctLabel.textContent = pct + '%';
+          if (progressBar) progressBar.style.width = pct + '%';
+          if (pctLabel) pctLabel.textContent = pct + '%';
         }
       });
 
       // On complete
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          // Success state
-          progressBar.classList.add('success');
-          progressBar.style.width = '100%';
-          pctLabel.textContent = '100%';
-          statusText.textContent = '✓ Upload complete';
-          uploadBtn.classList.remove('uploading');
-          uploadBtn.classList.add('success');
-          uploadBtn.innerHTML = '✓ Uploaded!';
+          if (progressBar) {
+            progressBar.classList.add('success');
+            progressBar.style.width = '100%';
+          }
+          if (pctLabel) pctLabel.textContent = '100%';
+          if (statusText) statusText.textContent = '✓ Upload complete';
+          if (uploadBtn) {
+            uploadBtn.classList.remove('uploading');
+            uploadBtn.classList.add('success');
+            uploadBtn.innerHTML = '✓ Uploaded!';
+          }
 
-          // Reset after 2s and reload list
           setTimeout(() => {
-            fileInput.value = '';
-            chip.classList.remove('show');
-            progressWrap.classList.remove('show');
-            progressBar.style.width = '0%';
-            uploadBtn.classList.remove('success', 'uploading');
-            uploadBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File';
+            if (fileInput) fileInput.value = '';
+            if (chip) chip.classList.remove('show');
+            if (progressWrap) progressWrap.classList.remove('show');
+            if (progressBar) progressBar.style.width = '0%';
+            if (uploadBtn) {
+              uploadBtn.classList.remove('success', 'uploading');
+              uploadBtn.disabled = false;
+              uploadBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File`;
+            }
             loadProjectFiles(id);
             updateSingleBadge(id);
           }, 2000);
-
         } else {
-          // Error state
           let errMsg = 'Upload failed';
           try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch {}
-          progressBar.classList.add('error');
-          statusText.textContent = '✗ ' + errMsg;
-          pctLabel.textContent = '';
-          uploadBtn.classList.remove('uploading');
-          uploadBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File';
+          if (progressBar) progressBar.classList.add('error');
+          if (statusText) statusText.textContent = '✗ ' + errMsg;
+          if (pctLabel) pctLabel.textContent = '';
+          if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.classList.remove('uploading');
+            uploadBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File`;
+          }
         }
-      });
-
-      xhr.addEventListener('error', () => {
-        progressBar.classList.add('error');
-        statusText.textContent = '✗ Network error — please retry';
-        pctLabel.textContent = '';
-        uploadBtn.classList.remove('uploading');
-        uploadBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File';
       });
 
       xhr.open('POST', API_URL + '/api/projects/' + id + '/files');
@@ -757,32 +760,66 @@ document.addEventListener('DOMContentLoaded', () => {
       xhr.send(formData);
     }
 
-    // Wire up file input → show preview chip
-    document.addEventListener('DOMContentLoaded', () => {
+    // Handle file selection (shared logic for input change and drag-drop)
+    function handleFileSelect(file) {
+      const chip = document.getElementById('filePreviewChip');
+      const chipName = document.getElementById('chipFileName');
+      const chipSize = document.getElementById('chipFileSize');
       const fileInput = document.getElementById('fileUploadInput');
-      const chip      = document.getElementById('filePreviewChip');
-      const chipName  = document.getElementById('chipFileName');
-      const chipSize  = document.getElementById('chipFileSize');
+
+      if (!file) return;
+
+      // Local Validation (Max 5MB, PDF/Images)
+      const MAX_SIZE = 5 * 1024 * 1024;
+      if (file.size > MAX_SIZE) {
+        alert('File exceeds 5MB limit');
+        if (fileInput) fileInput.value = '';
+        return;
+      }
+
+      const allowedExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!allowedExts.includes(ext)) {
+        alert('Only PDF and Images are allowed');
+        if (fileInput) fileInput.value = '';
+        return;
+      }
+
+      if (chipName) chipName.textContent = file.name;
+      if (chipSize) {
+        chipSize.textContent = file.size > 1024 * 1024
+          ? (file.size / 1024 / 1024).toFixed(1) + ' MB'
+          : Math.round(file.size / 1024) + ' KB';
+      }
+      if (chip) chip.classList.add('show');
+      
+      const progressWrap = document.getElementById('uploadProgressWrap');
+      if (progressWrap) progressWrap.classList.remove('show');
+    }
+
+    // Wire up listeners
+    const initFileListeners = () => {
+      const fileInput = document.getElementById('fileUploadInput');
       const chipRemove = document.getElementById('chipRemoveBtn');
-      const dropZone   = document.getElementById('fileDropZone');
+      const dropZone = document.getElementById('fileDropZone');
 
       if (fileInput) {
         fileInput.addEventListener('change', () => {
-          const file = fileInput.files[0];
-          handleFileSelect(file);
+          handleFileSelect(fileInput.files[0]);
         });
-
-        if (chipRemove) {
-          chipRemove.addEventListener('click', (e) => {
-            e.preventDefault();
-            fileInput.value = '';
-            chip.classList.remove('show');
-            document.getElementById('uploadProgressWrap').classList.remove('show');
-          });
-        }
       }
 
-      // Drag & Drop handlers
+      if (chipRemove) {
+        chipRemove.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (fileInput) fileInput.value = '';
+          const chip = document.getElementById('filePreviewChip');
+          if (chip) chip.classList.remove('show');
+          const progressWrap = document.getElementById('uploadProgressWrap');
+          if (progressWrap) progressWrap.classList.remove('show');
+        });
+      }
+
       if (dropZone) {
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
           dropZone.addEventListener(eventName, (e) => {
@@ -803,22 +840,13 @@ document.addEventListener('DOMContentLoaded', () => {
           const dt = e.dataTransfer;
           const file = dt.files[0];
           if (file) {
-            fileInput.files = dt.files;
+            if (fileInput) fileInput.files = dt.files;
             handleFileSelect(file);
           }
         }, false);
       }
-
-      function handleFileSelect(file) {
-        if (file) {
-          chipName.textContent = file.name;
-          chipSize.textContent = file.size > 1024 * 1024
-            ? (file.size / 1024 / 1024).toFixed(1) + ' MB'
-            : Math.round(file.size / 1024) + ' KB';
-          chip.classList.add('show');
-        }
-      }
-    });
+    };
+    initFileListeners();
 
 
     async function deleteProjectFile(fileId, projectId) {
