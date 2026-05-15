@@ -1,4 +1,4 @@
-﻿/* WebWynk CRM â€” Design System */
+/* WebWynk CRM â€” Design System */
 
 :root {
   --primary: #ff5028;
@@ -747,20 +747,137 @@ tr:hover {
 .milestone-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  min-height: 180px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  min-height: 200px;
 }
 
 .milestone-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
 }
+
+.milestone-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: transparent;
+  transition: background 0.3s ease;
+}
+
+.milestone-card.status-started {
+  border-color: rgba(99, 102, 241, 0.2);
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+}
+.milestone-card.status-started::before { background: var(--secondary); }
+
+.milestone-card.status-completed {
+  border-color: rgba(16, 185, 129, 0.2);
+  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+}
+.milestone-card.status-completed::before { background: var(--success); }
+
+.milestone-phase-tag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.milestone-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.status-started .milestone-status-pill {
+  background: rgba(120, 100, 240, 0.1);
+  color: var(--secondary);
+  border: 1px solid rgba(120, 100, 240, 0.1);
+}
+
+.status-completed .milestone-status-pill {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.1);
+}
+
+.milestone-card-title {
+  font-family: 'Bricolage Grotesque', serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--title);
+  margin-bottom: 6px;
+  line-height: 1.25;
+}
+
+.milestone-card-desc {
+  font-size: 0.85rem;
+  color: var(--body);
+  line-height: 1.5;
+  opacity: 0.75;
+  margin-bottom: 20px;
+}
+
+/* Sleek Toggle Switch */
+.status-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px; width: 18px;
+  left: 3px; bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider { background-color: var(--success); }
+input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+.toggle-label { font-size: 0.85rem; font-weight: 600; color: var(--body); }
 
 .milestone-card-header {
   margin-bottom: 12px;

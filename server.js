@@ -241,11 +241,17 @@ app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) =
     const { data: client } = await supabase.from('users').select('email, name').eq('id', client_id).single();
     if (client && milestones && Array.isArray(milestones)) {
       milestones.forEach(m => {
-        const oldM = oldMilestones.find(om => om.id === m.id || (om.title === m.title && om.id === undefined));
-        if (m.completed && (!oldM || !oldM.completed)) {
+        // Find existing milestone by ID or Title
+        const oldM = oldMilestones.find(om => (om.id && m.id && om.id === m.id) || (om.title === m.title));
+        
+        const isNowCompleted = m.status === 'completed' || parseInt(m.progress) === 100;
+        const wasCompleted = oldM && (oldM.status === 'completed' || parseInt(oldM.progress) === 100);
+
+        if (isNowCompleted && !wasCompleted) {
           console.log(`[Server] Triggering milestone completed email for: ${m.title}`);
           sendMilestoneEmail(client.email, updated, client.name, m.title, true).catch(err => console.error('[Server] Milestone email failed:', err));
         } else if (!oldM) {
+          // New milestone created (Started)
           console.log(`[Server] Triggering new milestone email for: ${m.title}`);
           sendMilestoneEmail(client.email, updated, client.name, m.title, false).catch(err => console.error('[Server] Milestone email failed:', err));
         }

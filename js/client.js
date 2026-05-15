@@ -252,36 +252,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderProjectCard(p) {
       const milestones = p.milestones || [];
-      const completedCount = milestones.filter(m => parseInt(m.progress) === 100).length;
-      const totalProgress = milestones.length > 0
-        ? Math.min(100, milestones.reduce((acc, m) => acc + (parseInt(m.progress) || 0), 0))
-        : (p.progress || 0);
+      // Calculate progress: each COMPLETED milestone is 25%
+      const completedCount = milestones.filter(m => m.status === 'completed' || parseInt(m.progress) === 100).length;
+      const totalProgress = Math.min(100, completedCount * 25);
 
       const typeClass = (p.project_type || '').toLowerCase().replace(' ', '-');
 
-      const getMilestoneStatusClass = (progress) => {
-        const pval = parseInt(progress) || 0;
-        if (pval === 0) return 'ms-pending';
-        if (pval >= 100) return 'ms-done';
-        return 'ms-active';
+
+      const getStatusIcon = (status) => {
+        if (status === 'completed') {
+          return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`;
+        }
+        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="3"><circle cx="12" cy="12" r="10"/></svg>`;
       };
 
-      const getStatusIcon = (progress) => {
-        const pval = parseInt(progress) || 0;
-        if (pval === 0) {
-          return `<svg class="ms-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`;
-        }
-        if (pval >= 100) {
-          return `<svg class="ms-status-icon" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
-        }
-        return `<svg class="ms-status-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
-      };
-
-      const getStatusLabel = (progress) => {
-        const pval = parseInt(progress) || 0;
-        if (pval === 0) return 'PENDING';
-        if (pval >= 100) return 'DONE';
-        return 'IN PROGRESS';
+      const getStatusLabel = (status) => {
+        return status === 'completed' ? 'COMPLETED' : 'STARTED';
       };
 
       return `
@@ -330,24 +316,22 @@ document.addEventListener('DOMContentLoaded', () => {
                   <p>Milestones will appear here once added by the project manager.</p>
                 </div>
               ` : milestones.map((m, idx) => `
-                <div class="milestone-card ${getMilestoneStatusClass(m.progress)}" onclick="viewMilestone(${p.id}, ${idx})">
-                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                    ${getStatusIcon(m.progress)}
-                    <span style="font-size:0.65rem; font-weight:700; letter-spacing:0.05em; color:var(--muted);">${getStatusLabel(m.progress)}</span>
+                <div class="milestone-card status-${m.status || 'started'}" onclick="viewMilestone(${p.id}, ${idx})">
+                  <span class="milestone-phase-tag">Phase ${String(idx + 1).padStart(2, '0')}</span>
+                  <div class="milestone-status-pill">
+                    ${getStatusIcon(m.status || 'started')}
+                    <span>${getStatusLabel(m.status || 'started')}</span>
                   </div>
                   <div class="milestone-card-title">${m.title}</div>
                   ${m.description ? `<div class="milestone-card-desc">${m.description}</div>` : ''}
-                  <div style="display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:12px;">
-                    <div style="flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
-                      <div style="width:${m.progress}%; height:100%; background:${parseInt(m.progress) === 100 ? '#22c55e' : 'var(--secondary)'}; border-radius:3px;"></div>
+                  
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:16px; border-top:1px solid rgba(0,0,0,0.05);">
+                    <div style="display:flex; align-items:center; gap:6px; color:var(--muted); font-size:0.75rem; font-weight:500;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <span>${m.end_date ? new Date(m.end_date).toLocaleDateString('en-GB', {day:'numeric', month:'short'}) : 'TBD'}</span>
                     </div>
-                    <span style="font-size:0.75rem; font-weight:600; color:var(--body); min-width:36px;">${m.progress}%</span>
-                  </div>
-                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
-                    <span style="font-size:0.7rem; color:var(--muted);">Due: ${m.end_date ? new Date(m.end_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'TBD'}</span>
-                    <div style="display:flex; gap:6px;">
-                      ${m.link ? `<a href="${m.link}" target="_blank" title="Resource Link" onclick="event.stopPropagation()" style="color:var(--body);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
-                      ${m.file ? `<span title="File: ${m.file}" onclick="event.stopPropagation()" style="color:var(--body);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>` : ''}
+                    <div style="display:flex; gap:8px;">
+                      ${m.link ? `<a href="${m.link}" target="_blank" title="Resource Link" onclick="event.stopPropagation()" style="color:var(--muted); transition:color 0.2s;" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='var(--muted)'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
                     </div>
                   </div>
                 </div>
@@ -377,13 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const proj = projects.find(p => String(p.id) === String(projectId));
       if (!proj) return;
       const ms = proj.milestones[index];
-      const pval = parseInt(ms.progress) || 0;
-
-      let statusClass = 'pending';
-      let statusLabel = 'PENDING';
-      if (pval === 0) { statusClass = 'pending'; statusLabel = 'PENDING'; }
-      else if (pval >= 100) { statusClass = 'done'; statusLabel = 'DONE'; }
-      else { statusClass = 'active'; statusLabel = 'IN PROGRESS'; }
+      const isCompleted = ms.status === 'completed' || parseInt(ms.progress) === 100;
 
       const modal = document.getElementById('milestoneModal');
       if (!modal) return;
@@ -396,18 +374,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (titleEl) titleEl.textContent = ms.title || 'Untitled';
       if (dateEl) dateEl.textContent = (ms.start_date || '—') + ' to ' + (ms.end_date || '—');
-      if (progressEl) progressEl.textContent = pval + '%';
+      if (progressEl) progressEl.textContent = isCompleted ? '100% (Completed)' : '0% (Started)';
       if (descEl) descEl.textContent = ms.description || 'No description provided.';
 
       const statusEl = document.getElementById('msStatusView');
       if (statusEl) {
-        statusEl.textContent = statusLabel;
-        statusEl.className = 'status-badge-view ' + statusClass;
+        statusEl.textContent = isCompleted ? 'COMPLETED' : 'STARTED';
+        statusEl.className = 'status-badge-view ' + (isCompleted ? 'done' : 'active');
       }
       const fillEl = document.getElementById('msProgressFill');
       if (fillEl) {
-        fillEl.style.width = pval + '%';
-        fillEl.className = 'progress-bar-fill ' + statusClass;
+        fillEl.style.width = isCompleted ? '100%' : '0%';
+        fillEl.className = 'progress-bar-fill ' + (isCompleted ? 'done' : 'active');
       }
 
       const links = modal.querySelector('.milestone-action-links');
