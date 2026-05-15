@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (!token || user.role !== 'client') {
       window.location.href = 'index.html';
+      return;
     }
 
     const userNameEl = document.getElementById('userName');
@@ -20,25 +21,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userCompanyEl) userCompanyEl.textContent = user.company;
     if (welcomeNameEl) welcomeNameEl.textContent = user.name.split(' ')[0];
 
-    // Navigation is now handled by standard anchor tags
-
     async function apiCall(endpoint, options = {}) {
-      const res = await fetch(API_URL + endpoint, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
+      try {
+        const res = await fetch(API_URL + endpoint, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          }
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          console.error('API Error:', data.error || res.statusText);
+          if (res.status === 401 || res.status === 403) {
+            localStorage.clear();
+            window.location.href = 'index.html';
+          }
+          return { error: data.error || 'Request failed', status: res.status };
         }
-      });
-      const data = await res.json();
-      
-      if (!options.method || options.method === 'GET') {
-        if (!data.error) {
+        
+        if (!options.method || options.method === 'GET') {
           sessionStorage.setItem('cache_' + endpoint, JSON.stringify(data));
         }
+        
+        return data;
+      } catch (err) {
+        console.error('Fetch Error:', err);
+        return { error: 'Network error' };
       }
-      
-      return data;
     }
 
     function loadPageData(page) {
@@ -71,11 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const statProposals = document.getElementById('statProposals');
       const statProjects = document.getElementById('statProjects');
 
-      if (statInvoices) statInvoices.textContent = invoices.length;
-      if (statProposals) statProposals.textContent = proposals.length;
-      if (statProjects) statProjects.textContent = projects.filter(p => p.status !== 'launched').length;
+      if (statInvoices) statInvoices.textContent = Array.isArray(invoices) ? invoices.length : 0;
+      if (statProposals) statProposals.textContent = Array.isArray(proposals) ? proposals.length : 0;
+      if (statProjects) {
+        const activeProjects = Array.isArray(projects) ? projects.filter(p => p.status !== 'launched') : [];
+        statProjects.textContent = activeProjects.length;
+      }
 
-      const recent = projects.slice(0, 3);
+      const recent = Array.isArray(projects) ? projects.slice(0, 3) : [];
       const container = document.getElementById('recentProjects');
       if (container) {
         container.innerHTML = recent.map(p => renderProjectCard(p)).join('') || '<p style="color:var(--body); text-align:center;">No active projects</p>';
@@ -99,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderInvoices() {
       const tbody = document.getElementById('invoicesTable');
       if (!tbody) return;
-      tbody.innerHTML = invoices.map(inv => {
+      tbody.innerHTML = (Array.isArray(invoices) ? invoices : []).map(inv => {
         const total = calculateTotal(inv.services);
         const balance = total - (inv.payment_received || 0);
         return `
@@ -116,13 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('') || '<tr><td colspan="7" class="empty-state">No invoices yet</td></tr>';
     }
 
-    function openInvoice(id) {
+    window.openInvoice = (id) => {
       window.open(`invoice.html?id=${id}&view=true`, '_blank');
-    }
+    };
 
-    function openProposal(id) {
+    window.openProposal = (id) => {
       window.open(`proposal.html?id=${id}&view=true`, '_blank');
-    }
+    };
 
     // Proposals
     async function loadProposals() {
@@ -142,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const tbody = document.getElementById('proposalsTable');
       if (!tbody) return;
       
-      tbody.innerHTML = proposals.map(p => {
+      tbody.innerHTML = (Array.isArray(proposals) ? proposals : []).map(p => {
         const services = typeof p.services === 'string' ? JSON.parse(p.services || '[]') : (p.services || []);
         return `
           <tr>
@@ -310,10 +324,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!modal) return;
 
       modal.querySelector('.modal-title').textContent = 'Milestone Details';
-      document.getElementById('msTitleView').textContent = ms.title || 'Untitled';
-      document.getElementById('msDateView').textContent = (ms.start_date || '—') + ' to ' + (ms.end_date || '—');
-      document.getElementById('msProgressView').textContent = pval + '%';
-      document.getElementById('msDescView').textContent = ms.description || 'No description provided.';
+      const titleEl = document.getElementById('msTitleView');
+      const dateEl = document.getElementById('msDateView');
+      const progressEl = document.getElementById('msProgressView');
+      const descEl = document.getElementById('msDescView');
+
+      if (titleEl) titleEl.textContent = ms.title || 'Untitled';
+      if (dateEl) dateEl.textContent = (ms.start_date || '—') + ' to ' + (ms.end_date || '—');
+      if (progressEl) progressEl.textContent = pval + '%';
+      if (descEl) descEl.textContent = ms.description || 'No description provided.';
 
       const statusEl = document.getElementById('msStatusView');
       if (statusEl) {
@@ -327,10 +346,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const links = modal.querySelector('.milestone-action-links');
-      links.innerHTML = `
-        ${ms.link ? `<a href="${ms.link}" target="_blank" class="btn btn-outline btn-sm">🔗 Resource Link</a>` : ''}
-        ${ms.file ? `<span class="btn btn-outline btn-sm">📄 File: ${ms.file}</span>` : ''}
-      `;
+      if (links) {
+        links.innerHTML = `
+          ${ms.link ? `<a href="${ms.link}" target="_blank" class="btn btn-outline btn-sm">🔗 Resource Link</a>` : ''}
+          ${ms.file ? `<span class="btn btn-outline btn-sm">📄 File: ${ms.file}</span>` : ''}
+        `;
+      }
 
       modal.classList.add('show');
     };
@@ -348,10 +369,8 @@ document.addEventListener('DOMContentLoaded', () => {
       attachCardBadges(projects);
     }
 
-    // Feature 2 & 5: populate file and unread comment badges
     async function attachCardBadges(projectList) {
       await Promise.all(projectList.map(async (p) => {
-        // File Badge
         const fileBadge = document.getElementById('file-badge-' + p.id);
         if (fileBadge) {
           try {
@@ -364,7 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch {}
         }
 
-        // Comment Badge (Unread)
         const commentBadge = document.getElementById('comment-badge-' + p.id);
         if (commentBadge) {
           try {
@@ -383,20 +401,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function openProjectComments(id) {
-      document.getElementById('currentCommentProjectId').value = id;
-      document.getElementById('commentsModal').classList.add('show');
+      const modal = document.getElementById('commentsModal');
+      const input = document.getElementById('currentCommentProjectId');
+      if (!modal || !input) return;
       
-      // Update last viewed timestamp and clear badge
+      input.value = id;
+      modal.classList.add('show');
+      
       localStorage.setItem('comments_last_viewed_' + id, new Date().toISOString());
       const badge = document.getElementById('comment-badge-' + id);
       if (badge) badge.classList.add('hidden');
 
       loadComments(id);
 
-      // Feature 4: Live Polling (every 15s)
       if (window.commentsInterval) clearInterval(window.commentsInterval);
       window.commentsInterval = setInterval(() => {
-        if (document.getElementById('commentsModal').classList.contains('show')) {
+        if (modal.classList.contains('show')) {
           loadComments(id);
         } else {
           clearInterval(window.commentsInterval);
@@ -407,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadComments(id) {
       const comments = await apiCall('/api/projects/' + id + '/comments');
       const list = document.getElementById('commentsList');
-      if (!list) return;
+      if (!list || !Array.isArray(comments)) return;
       list.innerHTML = comments.map(c => {
         const isMe = String(c.user_id) === String(user.id);
         return `
@@ -426,34 +446,30 @@ document.addEventListener('DOMContentLoaded', () => {
       list.scrollTop = list.scrollHeight;
     }
 
-    async function postComment() {
+    window.postComment = async () => {
       const id = document.getElementById('currentCommentProjectId').value;
-      const comment = document.getElementById('commentText').value;
-      if (!comment.trim()) return;
+      const commentText = document.getElementById('commentText');
+      if (!commentText || !commentText.value.trim()) return;
 
       const res = await apiCall('/api/projects/' + id + '/comments', {
         method: 'POST',
-        body: JSON.stringify({ comment })
+        body: JSON.stringify({ comment: commentText.value })
       });
 
-      if (res) {
+      if (res && !res.error) {
         localStorage.setItem('comments_last_viewed_' + id, new Date().toISOString());
-        document.getElementById('commentText').value = '';
+        commentText.value = '';
         loadComments(id);
       }
-    }
-
-    // Expose to window
-    window.openProjectFiles = openProjectFiles;
-    window.openProjectComments = openProjectComments;
-    window.postComment = postComment;
-    window.closeModal = closeModal;
-    window.uploadProjectFile = uploadProjectFile;
-    window.deleteProjectFile = deleteProjectFile;
+    };
 
     window.openProjectFiles = (id) => {
-      document.getElementById('currentProjectFilesId').value = id;
-      document.getElementById('filesModal').classList.add('show');
+      const modal = document.getElementById('filesModal');
+      const input = document.getElementById('currentProjectFilesId');
+      if (!modal || !input) return;
+
+      input.value = id;
+      modal.classList.add('show');
       switchResourceTab('admin-files');
       loadProjectFiles(id);
       loadProjectLinks(id);
@@ -472,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const files = await apiCall('/api/projects/' + id + '/files');
       const adminList = document.getElementById('adminFilesList');
       const clientList = document.getElementById('clientFilesList');
-      if (!adminList || !clientList) return;
+      if (!adminList || !clientList || !Array.isArray(files)) return;
 
       const getThumb = (f) => {
         const ext = f.original_name.split('.').pop().toLowerCase();
@@ -510,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadProjectLinks(id) {
       const links = await apiCall('/api/projects/' + id + '/links');
       const list = document.getElementById('projectLinksList');
-      if (!list) return;
+      if (!list || !Array.isArray(links)) return;
 
       list.innerHTML = links.map(l => `
         <div class="link-item">
@@ -532,14 +548,14 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         body: JSON.stringify({ title, url })
       });
-      if (res) {
+      if (res && !res.error) {
         document.getElementById('linkTitle').value = '';
         document.getElementById('linkUrl').value = '';
         loadProjectLinks(id);
       }
     };
 
-    async function uploadProjectFile() {
+    window.uploadProjectFile = async () => {
       const id = document.getElementById('currentProjectFilesId').value;
       const fileInput = document.getElementById('fileUploadInput');
       const file = fileInput.files[0];
@@ -559,16 +575,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const uploadBtn    = document.getElementById('uploadFileBtn');
       const chip         = document.getElementById('filePreviewChip');
 
-      progressWrap.style.display = 'block';
-      uploadBtn.disabled = true;
-      uploadBtn.innerHTML = '⏳ Uploading...';
+      if (progressWrap) progressWrap.style.display = 'block';
+      if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '⏳ Uploading...';
+      }
 
       const formData = new FormData();
       formData.append('file', file);
 
       const xhr = new XMLHttpRequest();
       xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
+        if (e.lengthComputable && progressBar && pctLabel) {
           const pct = Math.round((e.loaded / e.total) * 100);
           progressBar.style.width = pct + '%';
           pctLabel.textContent = pct + '%';
@@ -577,60 +595,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          statusText.textContent = '✓ Upload complete';
+          if (statusText) statusText.textContent = '✓ Upload complete';
           setTimeout(() => {
-            fileInput.value = '';
-            chip.style.display = 'none';
-            progressWrap.style.display = 'none';
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File';
+            if (fileInput) fileInput.value = '';
+            if (chip) chip.style.display = 'none';
+            if (progressWrap) progressWrap.style.display = 'none';
+            if (uploadBtn) {
+              uploadBtn.disabled = false;
+              uploadBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File';
+            }
             loadProjectFiles(id);
           }, 2000);
         } else {
           alert('Upload failed');
-          uploadBtn.disabled = false;
-          uploadBtn.innerHTML = 'Upload File';
+          if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = 'Upload File';
+          }
         }
       });
 
       xhr.open('POST', '/api/projects/' + id + '/files');
       xhr.setRequestHeader('Authorization', 'Bearer ' + token);
       xhr.send(formData);
-    }
+    };
 
-    async function deleteProjectFile(fileId, projectId) {
+    window.deleteProjectFile = async (fileId, projectId) => {
       if (confirm('Delete this file?')) {
         await apiCall('/api/projects/' + projectId + '/files/' + fileId, { method: 'DELETE' });
         loadProjectFiles(projectId);
       }
-    }
+    };
 
-    // Change Password
-    async function changePassword() {
+    window.changePassword = async () => {
       const current = document.getElementById('currentPassword').value;
       const newPass = document.getElementById('newPassword').value;
-      const confirm = document.getElementById('confirmPassword').value;
+      const confirmPass = document.getElementById('confirmPassword').value;
       const errorDiv = document.getElementById('passwordError');
       const successDiv = document.getElementById('passwordSuccess');
 
-      errorDiv.classList.remove('show');
-      successDiv.classList.remove('show');
+      if (errorDiv) errorDiv.classList.remove('show');
+      if (successDiv) successDiv.classList.remove('show');
 
-      if (!current || !newPass || !confirm) {
-        errorDiv.textContent = 'All fields are required';
-        errorDiv.classList.add('show');
+      if (!current || !newPass || !confirmPass) {
+        if (errorDiv) { errorDiv.textContent = 'All fields are required'; errorDiv.classList.add('show'); }
         return;
       }
 
       if (newPass.length < 8) {
-        errorDiv.textContent = 'Password must be at least 8 characters';
-        errorDiv.classList.add('show');
+        if (errorDiv) { errorDiv.textContent = 'Password must be at least 8 characters'; errorDiv.classList.add('show'); }
         return;
       }
 
-      if (newPass !== confirm) {
-        errorDiv.textContent = 'New passwords do not match';
-        errorDiv.classList.add('show');
+      if (newPass !== confirmPass) {
+        if (errorDiv) { errorDiv.textContent = 'New passwords do not match'; errorDiv.classList.add('show'); }
         return;
       }
 
@@ -641,22 +659,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (result.error) {
-          errorDiv.textContent = result.error;
-          errorDiv.classList.add('show');
+          if (errorDiv) { errorDiv.textContent = result.error; errorDiv.classList.add('show'); }
         } else {
-          successDiv.textContent = 'Password changed successfully!';
-          successDiv.classList.add('show');
+          if (successDiv) { successDiv.textContent = 'Password changed successfully!'; successDiv.classList.add('show'); }
           document.getElementById('currentPassword').value = '';
           document.getElementById('newPassword').value = '';
           document.getElementById('confirmPassword').value = '';
         }
       } catch (err) {
-        errorDiv.textContent = 'Failed to change password';
-        errorDiv.classList.add('show');
+        if (errorDiv) { errorDiv.textContent = 'Failed to change password'; errorDiv.classList.add('show'); }
       }
-    }
+    };
 
-    // Utilities
     function formatCurrency(amount, currency = 'INR') {
       if (!amount) amount = 0;
       return (currency === 'INR' ? '₹' : '$') + amount.toLocaleString(currency === 'INR' ? 'en-IN' : 'en-US');
@@ -667,27 +681,31 @@ document.addEventListener('DOMContentLoaded', () => {
       return sArr.reduce((sum, s) => sum + (s.price || 0), 0);
     }
 
-    function closeModal(id) {
-      document.getElementById(id).classList.remove('show');
+    window.closeModal = (id) => {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.remove('show');
       if (id === 'commentsModal' && window.commentsInterval) {
         clearInterval(window.commentsInterval);
         window.commentsInterval = null;
       }
-    }
+    };
 
-    function logout() {
+    window.logout = () => {
       localStorage.clear();
       window.location.href = 'index.html';
-    }
+    };
 
     // Initialize based on current active tab
     const activeNav = document.querySelector('.nav-item.active');
     if (activeNav) {
       loadPageData(activeNav.dataset.page);
     } else {
-      loadDashboard();
+      if (window.location.pathname.includes('client.html') || window.location.pathname.endsWith('/')) {
+        loadDashboard();
+      }
     }
-    // Feature 8: Wire up file input & Drag-and-Drop for Client
+
+    // Feature: File input & Drag-and-Drop
     const fileInput = document.getElementById('fileUploadInput');
     const chip      = document.getElementById('filePreviewChip');
     const chipName  = document.getElementById('chipFileName');
@@ -726,7 +744,8 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         if (fileInput) fileInput.value = '';
         if (chip) chip.style.display = 'none';
-        document.getElementById('uploadProgressWrap').style.display = 'none';
+        const wrap = document.getElementById('uploadProgressWrap');
+        if (wrap) wrap.style.display = 'none';
       });
     }
 
@@ -755,11 +774,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
-
-    window.logout = () => {
-      localStorage.clear();
-      window.location.href = 'index.html';
-    };
 });
-
-  
