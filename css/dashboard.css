@@ -142,7 +142,7 @@ body {
   white-space: nowrap;
   pointer-events: none;
   z-index: 1000;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .nav-item .nav-tooltip::before {
@@ -766,7 +766,10 @@ tr:hover {
 .milestone-card::before {
   content: "";
   position: absolute;
-  top: 0; left: 0; right: 0; height: 4px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
   background: transparent;
   transition: background 0.3s ease;
 }
@@ -775,13 +778,19 @@ tr:hover {
   border-color: rgba(99, 102, 241, 0.2);
   background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
 }
-.milestone-card.status-started::before { background: var(--secondary); }
+
+.milestone-card.status-started::before {
+  background: var(--secondary);
+}
 
 .milestone-card.status-completed {
   border-color: rgba(16, 185, 129, 0.2);
   background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
 }
-.milestone-card.status-completed::before { background: var(--success); }
+
+.milestone-card.status-completed::before {
+  background: var(--success);
+}
 
 .milestone-phase-tag {
   font-size: 0.6rem;
@@ -843,7 +852,7 @@ tr:hover {
   gap: 10px;
   margin-top: auto;
   padding-top: 15px;
-  border-top: 1px solid rgba(0,0,0,0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .toggle-switch {
@@ -853,12 +862,19 @@ tr:hover {
   height: 24px;
 }
 
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
 
 .toggle-slider {
   position: absolute;
   cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: #cbd5e1;
   transition: .4s;
   border-radius: 24px;
@@ -867,17 +883,28 @@ tr:hover {
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 18px; width: 18px;
-  left: 3px; bottom: 3px;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
   background-color: white;
   transition: .4s;
   border-radius: 50%;
 }
 
-input:checked + .toggle-slider { background-color: var(--success); }
-input:checked + .toggle-slider:before { transform: translateX(20px); }
+input:checked+.toggle-slider {
+  background-color: var(--success);
+}
 
-.toggle-label { font-size: 0.85rem; font-weight: 600; color: var(--body); }
+input:checked+.toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.toggle-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--body);
+}
 
 .milestone-card-header {
   margin-bottom: 12px;
@@ -1042,9 +1069,20 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
 }
 
 @keyframes pulse-live {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
 }
 
 .btn-icon.danger {
@@ -1813,7 +1851,7 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
   position: relative;
   font-size: 0.88rem;
   line-height: 1.5;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .comment-item.them .comment-bubble {
@@ -2311,7 +2349,7 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
     width: 275px;
     z-index: 1000;
     transform: translateX(-100%);
-    box-shadow: 8px 0 40px rgba(0,0,0,0.4);
+    box-shadow: 8px 0 40px rgba(0, 0, 0, 0.4);
   }
 
   .sidebar.sidebar-open {
@@ -2375,7 +2413,7 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
 }
 
@@ -2396,7 +2434,7 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0, 0, 0, 0.55);
   z-index: 999;
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
@@ -2444,10 +2482,113 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
 }
 
 .status-badge-view {
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: var(--border);
+  padding: 6px 12px;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.status-badge-view.active {
+  background: rgba(120, 100, 240, 0.1);
+  color: var(--secondary);
+}
+
+.status-badge-view.done {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.status-badge-view.pending {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+/* Milestone Detail View Redesign */
+.milestone-view-header {
+  margin-bottom: 24px;
+}
+
+.milestone-view-phase {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.milestone-view-title {
+  font-family: 'Bricolage Grotesque', serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--title);
+  line-height: 1.2;
+}
+
+.milestone-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.milestone-info-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.milestone-info-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.milestone-info-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--title);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.description-section {
+  background: #ffffff;
+  border-left: 4px solid var(--secondary);
+  padding: 20px;
+  border-radius: 0 12px 12px 0;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.description-section .milestone-info-label {
+  margin-bottom: 12px;
+}
+
+.description-content {
+  font-size: 0.95rem;
   color: var(--body);
+  line-height: 1.6;
+}
+
+.milestone-action-links .btn-outline {
+  justify-content: center;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .progress-bar-container {
@@ -2497,45 +2638,46 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
   background: var(--bg);
   color: var(--muted);
 }
+
 /* ========== Pagination ========== */
 .pagination-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-top: 24px;
-    padding: 16px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 16px 0;
 }
 
 .pagination-btn {
-    padding: 8px 16px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--body);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--body);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .pagination-btn:hover:not(:disabled) {
-    border-color: var(--secondary);
-    color: var(--secondary);
-    background: rgba(120, 100, 240, 0.02);
+  border-color: var(--secondary);
+  color: var(--secondary);
+  background: rgba(120, 100, 240, 0.02);
 }
 
 .pagination-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .pagination-info {
-    font-size: 0.85rem;
-    color: var(--muted);
-    font-weight: 500;
-    margin: 0 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 500;
+  margin: 0 8px;
 }

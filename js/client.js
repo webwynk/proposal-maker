@@ -367,33 +367,36 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!modal) return;
 
       modal.querySelector('.modal-title').textContent = 'Milestone Details';
+      
+      const phaseEl = document.getElementById('msPhaseView');
       const titleEl = document.getElementById('msTitleView');
       const dateEl = document.getElementById('msDateView');
-      const progressEl = document.getElementById('msProgressView');
       const descEl = document.getElementById('msDescView');
-
-      if (titleEl) titleEl.textContent = ms.title || 'Untitled';
-      if (dateEl) dateEl.textContent = (ms.start_date || '—') + ' to ' + (ms.end_date || '—');
-      if (progressEl) progressEl.textContent = isCompleted ? '100% (Completed)' : '0% (Started)';
-      if (descEl) descEl.textContent = ms.description || 'No description provided.';
-
       const statusEl = document.getElementById('msStatusView');
+
+      if (phaseEl) phaseEl.textContent = `PHASE ${String(index + 1).padStart(2, '0')}`;
+      if (titleEl) titleEl.textContent = ms.title || 'Untitled';
+      if (dateEl) {
+        dateEl.textContent = ms.end_date ? new Date(ms.end_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'TBD';
+      }
+      if (descEl) descEl.textContent = ms.description || 'No description provided for this phase.';
+
       if (statusEl) {
         statusEl.textContent = isCompleted ? 'COMPLETED' : 'STARTED';
         statusEl.className = 'status-badge-view ' + (isCompleted ? 'done' : 'active');
       }
-      const fillEl = document.getElementById('msProgressFill');
-      if (fillEl) {
-        fillEl.style.width = isCompleted ? '100%' : '0%';
-        fillEl.className = 'progress-bar-fill ' + (isCompleted ? 'done' : 'active');
-      }
 
       const links = modal.querySelector('.milestone-action-links');
       if (links) {
-        links.innerHTML = `
-          ${ms.link ? `<a href="${ms.link}" target="_blank" class="btn btn-outline btn-sm">🔗 Resource Link</a>` : ''}
-          ${ms.file ? `<span class="btn btn-outline btn-sm">📄 File: ${ms.file}</span>` : ''}
-        `;
+        links.innerHTML = '';
+        if (ms.link) {
+          links.innerHTML += `
+            <a href="${ms.link}" target="_blank" class="btn btn-outline" style="margin-top:8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              View Resource Link
+            </a>
+          `;
+        }
       }
 
       modal.classList.add('show');

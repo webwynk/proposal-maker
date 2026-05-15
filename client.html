@@ -238,20 +238,32 @@
         <button class="modal-close" onclick="closeModal('milestoneModal')">&times;</button>
       </div>
       <div class="modal-body">
-        <h3 id="msTitleView" style="margin-bottom:8px; font-weight: 800;"></h3>
-        <p id="msDateView" style="font-size:0.85rem; color:var(--body); opacity:0.7; margin-bottom:20px;"></p>
-
-        <div class="milestone-view-progress">
-          <div class="progress-label">
-            <span>Status</span>
-            <span class="status-badge-view" id="msStatusView">STARTED</span>
-          </div>
-          <div style="font-size:1.2rem; font-weight:700; color:var(--title);" id="msProgressView"></div>
+        <div class="milestone-view-header">
+          <span class="milestone-view-phase" id="msPhaseView">PHASE 01</span>
+          <h2 class="milestone-view-title" id="msTitleView">Milestone Title</h2>
         </div>
 
-        <div style="margin-bottom:20px;">
-            <label style="font-weight:700; font-size:0.7rem; color:var(--title); text-transform:uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Phase Description</label>
-            <p id="msDescView" style="font-size:0.95rem; line-height:1.6; color:var(--body);"></p>
+        <div class="milestone-info-grid">
+          <div class="milestone-info-item">
+            <span class="milestone-info-label">Status</span>
+            <div class="milestone-info-value">
+              <span class="status-badge-view" id="msStatusView">STARTED</span>
+            </div>
+          </div>
+          <div class="milestone-info-item">
+            <span class="milestone-info-label">Due Date</span>
+            <div class="milestone-info-value">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span id="msDateView">--/--/--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="description-section">
+          <span class="milestone-info-label">Phase Description</span>
+          <div class="description-content" id="msDescView">
+            No description provided.
+          </div>
         </div>
 
         <div class="milestone-action-links" style="display:flex; gap:12px; margin-top:24px;">
