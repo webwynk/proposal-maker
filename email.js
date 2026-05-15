@@ -6,8 +6,8 @@ const transporter = nodemailer.createTransport({
   port: process.env.SMTP_PORT || 465,
   secure: true,
   auth: {
-    user: process.env.SMTP_USER || 'contact@webwynk.com',
-    pass: process.env.SMTP_PASS || 'your_email_password',
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
 });
 
@@ -62,7 +62,7 @@ const sendInvoiceEmail = async (clientEmail, invoice, clientName) => {
     const subject = `New Invoice from WebWynk: #${invoice.invoice_number}`;
     
     await transporter.sendMail({
-      from: `"WebWynk" <${process.env.SMTP_USER || 'contact@webwynk.com'}>`,
+      from: `"WebWynk" <${process.env.SMTP_USER}>`,
       to: clientEmail,
       subject: subject,
       html: `
@@ -97,7 +97,7 @@ const sendProposalEmail = async (clientEmail, proposal, clientName) => {
     const subject = `Project Proposal from WebWynk: ${proposal.project_title}`;
     
     await transporter.sendMail({
-      from: `"WebWynk" <${process.env.SMTP_USER || 'contact@webwynk.com'}>`,
+      from: `"WebWynk" <${process.env.SMTP_USER}>`,
       to: clientEmail,
       subject: subject,
       html: `
@@ -129,7 +129,7 @@ const sendProjectUpdateEmail = async (clientEmail, project, clientName, updateCo
     const subject = `Project Update: ${project.name} is now in ${statusLabel}`;
     
     await transporter.sendMail({
-      from: `"WebWynk" <${process.env.SMTP_USER || 'contact@webwynk.com'}>`,
+      from: `"WebWynk" <${process.env.SMTP_USER}>`,
       to: clientEmail,
       subject: subject,
       html: `
@@ -162,7 +162,7 @@ const sendMilestoneEmail = async (clientEmail, project, clientName, milestoneNam
     const subject = isCompleted ? `Milestone Completed! 🎉 - ${milestoneName}` : `New Milestone Added - ${milestoneName}`;
     
     await transporter.sendMail({
-      from: `"WebWynk" <${process.env.SMTP_USER || 'contact@webwynk.com'}>`,
+      from: `"WebWynk" <${process.env.SMTP_USER}>`,
       to: clientEmail,
       subject: subject,
       html: `
