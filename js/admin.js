@@ -419,16 +419,11 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading('emailLogsTable', 5);
       }
       
-      const allLogs = await apiCall('/api/admin/email-logs');
+      let allLogs = await apiCall('/api/admin/email-logs');
+      if (!Array.isArray(allLogs)) allLogs = [];
+      
       if (clientId) {
-        emailLogs = allLogs.filter(log => String(log.reference_id) === String(clientId) || log.recipient_email.includes(clientId)); // Fallback if ref_id isn't user_id
-        // Actually, reference_id for 'project'/'invoice'/'proposal' is the object id.
-        // We might need to filter by recipient email if we don't have a direct user_id in logs.
-        // Let's assume we can filter by recipient email which we get from client data.
-        const client = clients.find(c => String(c.id) === String(clientId));
-        if (client) {
-            emailLogs = allLogs.filter(log => log.recipient_email === client.email);
-        }
+        emailLogs = allLogs.filter(log => log.recipient_email === (clients.find(c => String(c.id) === String(clientId))?.email));
       } else {
         emailLogs = allLogs;
       }
@@ -449,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${log.subject}</td>
           <td><span class="badge" style="background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:4px; font-size:10px; text-transform:uppercase;">${log.email_type}</span></td>
           <td><span class="status-badge status-paid" style="background:#dcfce7; color:#166534;">Sent</span></td>
-          <td>${new Date(log.sent_at).toLocaleString()}</td>
+          <td>${log.sent_at ? new Date(log.sent_at).toLocaleString() : 'N/A'}</td>
         </tr>
       `).join('') || `<tr><td colspan="${isClientView ? 4 : 5}" class="empty-state">No email logs found</td></tr>`;
 

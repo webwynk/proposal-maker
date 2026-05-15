@@ -16,15 +16,18 @@ const BASE_URL = process.env.BASE_URL || 'https://proposal.webwynk.com';
 // Helper to log emails in the database
 const logEmail = async (recipient, subject, type, referenceId = null) => {
   try {
-    await supabase.from('email_logs').insert([{
+    const { error } = await supabase.from('email_logs').insert([{
       recipient_email: recipient,
       subject: subject,
       email_type: type,
-      reference_id: referenceId,
-      sent_at: new Date()
+      reference_id: referenceId ? String(referenceId) : null,
+      sent_at: new Date().toISOString()
     }]);
+    if (error) {
+      console.error('[Email Log] Supabase Error:', error.message, error.details);
+    }
   } catch (error) {
-    console.error('Error logging email:', error);
+    console.error('[Email Log] Critical Catch:', error);
   }
 };
 
