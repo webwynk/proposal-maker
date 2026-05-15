@@ -10,39 +10,55 @@
   <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
+  <!-- Hamburger (mobile) -->
+  <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <div class="app-layout">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <img src="assets/webwynk-logo.webp" alt="WebWynk" class="sidebar-logo">
-        <div class="sidebar-title" style="margin-top:8px;">My Account</div>
+        <div class="sidebar-brand">          <div class="sidebar-subtitle">Client Portal</div>
+        </div>
       </div>
+      <div class="nav-section-label">My Account</div>
       <nav>
         <a href="client.html" class="nav-item" data-page="dashboard">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Dashboard
+          <span>Dashboard</span><span class="nav-tooltip">Dashboard</span>
         </a>
         <a href="client-invoices.html" class="nav-item" data-page="invoices">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          My Invoices
+          <span>My Invoices</span><span class="nav-tooltip">Invoices</span>
         </a>
         <a href="client-proposals.html" class="nav-item" data-page="proposals">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
-          My Proposals
+          <span>My Proposals</span><span class="nav-tooltip">Proposals</span>
         </a>
         <a href="client-projects.html" class="nav-item active" data-page="projects">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          My Projects
+          <span>My Projects</span><span class="nav-tooltip">Projects</span>
         </a>
         <a href="client-settings.html" class="nav-item" data-page="settings">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Settings
+          <span>Settings</span><span class="nav-tooltip">Settings</span>
         </a>
       </nav>
       <div class="user-info">
-        <div class="user-name" id="userName">Client</div>
-        <div class="user-role" id="userCompany">Company</div>
-        <button class="logout-btn" onclick="logout()">Logout</button>
+        <div class="user-info-card">
+          <div class="user-avatar" id="userAvatar">C</div>
+          <div class="user-details">
+            <div class="user-name" id="userName">Client</div>
+            <div class="user-role" id="userCompany">Company</div>
+          </div>
+          <button class="logout-btn" onclick="logout()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Out
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -67,7 +83,61 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="currentProjectFilesId">
-        <div id="projectFilesTable"></div>
+
+        <!-- Upload Zone -->
+        <label class="file-upload-zone" id="fileDropZone" for="fileUploadInput">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Drop file here or <strong>click to browse</strong></p>
+          <span class="file-hint">Images & PDFs only · Max 5MB</span>
+        </label>
+        <input type="file" id="fileUploadInput" style="display:none;" accept="image/*,.pdf">
+
+        <!-- Selected File Preview Chip -->
+        <div class="file-preview-chip" id="filePreviewChip">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span class="chip-name" id="chipFileName">filename.pdf</span>
+          <span class="chip-size" id="chipFileSize">2.4 MB</span>
+          <button class="chip-remove" id="chipRemoveBtn" title="Remove">&times;</button>
+        </div>
+
+        <!-- Upload Progress -->
+        <div class="upload-progress-wrap" id="uploadProgressWrap">
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px;">
+            <span id="uploadStatusText" style="color:var(--body);">Uploading...</span>
+            <span id="uploadProgressPct" style="color:var(--secondary); font-weight:600;">0%</span>
+          </div>
+          <div class="progress-bar" style="height:6px; background:#f1f5f9;">
+            <div class="progress-fill" id="uploadProgressBar" style="width:0%; transition: width 0.2s;"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="uploadFileBtn" onclick="uploadProjectFile()" style="width:100%; margin-bottom:20px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload File
+        </button>
+
+        <!-- Tabs Navigation -->
+        <div class="modal-tabs">
+          <button class="modal-tab-btn active" onclick="switchResourceTab('admin-files')">Admin Files</button>
+          <button class="modal-tab-btn" onclick="switchResourceTab('client-files')">Client Files</button>
+          <button class="modal-tab-btn" onclick="switchResourceTab('links')">Links</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div id="tab-admin-files" class="resource-tab-content active">
+          <div id="adminFilesList" class="file-list"></div>
+        </div>
+        <div id="tab-client-files" class="resource-tab-content" style="display:none;">
+          <div id="clientFilesList" class="file-list"></div>
+        </div>
+        <div id="tab-links" class="resource-tab-content" style="display:none;">
+          <div class="link-input-group">
+            <input type="text" id="linkTitle" placeholder="Title (e.g. Drive, Figma)">
+            <input type="text" id="linkUrl" placeholder="https://...">
+            <button class="btn btn-primary" onclick="addProjectLink()">Add</button>
+          </div>
+          <div id="projectLinksList" class="link-list"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -76,7 +146,7 @@
   <div class="modal" id="commentsModal">
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
-        <h2 class="modal-title">Project Collaboration</h2>
+        <h2 class="modal-title"><span class="live-dot"></span>Project Collaboration</h2>
         <button class="modal-close" onclick="closeModal('commentsModal')">&times;</button>
       </div>
       <div class="modal-body">
@@ -125,5 +195,12 @@
   </div>
 
   <script src="js/client.js"></script>
+  <script>
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    hamburgerBtn.addEventListener('click', () => { sidebar.classList.add('sidebar-open'); overlay.classList.add('active'); document.body.style.overflow='hidden'; });
+    overlay.addEventListener('click', () => { sidebar.classList.remove('sidebar-open'); overlay.classList.remove('active'); document.body.style.overflow=''; });
+  </script>
 </body>
 </html>

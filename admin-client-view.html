@@ -24,30 +24,48 @@
       font-size: 1.5rem;
       flex-shrink: 0;
     }
-  </style>
+</style>
 </head>
 <body>
+  <!-- Hamburger (mobile) -->
+  <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <div class="app-layout">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <img src="assets/webwynk-logo.webp" alt="WebWynk" class="sidebar-logo">
-        <div class="sidebar-title" style="margin-top:8px;">CRM Dashboard</div>
+        <div class="sidebar-brand">          <div class="sidebar-subtitle">CRM Dashboard</div>
+        </div>
       </div>
+      <div class="nav-section-label">Main</div>
       <nav>
         <a href="admin.html" class="nav-item" data-page="dashboard">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Dashboard
+          <span>Dashboard</span>
+          <span class="nav-tooltip">Dashboard</span>
         </a>
         <a href="admin-clients.html" class="nav-item active" data-page="clients">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Clients
+          <span>Clients</span>
+          <span class="nav-tooltip">Clients</span>
         </a>
       </nav>
       <div class="user-info">
-        <div class="user-name" id="userName">Admin</div>
-        <div class="user-role">Administrator</div>
-        <button class="logout-btn" onclick="logout()">Logout</button>
+        <div class="user-info-card">
+          <div class="user-avatar" id="userAvatar">A</div>
+          <div class="user-details">
+            <div class="user-name" id="userName">Admin</div>
+            <div class="user-role">Administrator</div>
+          </div>
+          <button class="logout-btn" onclick="logout()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Out
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -438,13 +456,61 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="currentProjectFilesId">
-        <label class="file-upload-zone" for="fileUploadInput">
+
+        <!-- Upload Zone -->
+        <label class="file-upload-zone" id="fileDropZone" for="fileUploadInput">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <p>Click to upload or drag and drop</p>
+          <p>Drop file here or <strong>click to browse</strong></p>
+          <span class="file-hint">Images & PDFs only · Max 5MB</span>
         </label>
-        <input type="file" id="fileUploadInput" style="display:none;">
-        <button class="btn btn-primary" onclick="uploadProjectFile()" style="margin-bottom: 20px; width: 100%;">Upload File</button>
-        <div id="projectFilesTable"></div>
+        <input type="file" id="fileUploadInput" style="display:none;" accept="image/*,.pdf">
+
+        <!-- Selected File Preview Chip -->
+        <div class="file-preview-chip" id="filePreviewChip">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span class="chip-name" id="chipFileName">filename.pdf</span>
+          <span class="chip-size" id="chipFileSize">2.4 MB</span>
+          <button class="chip-remove" id="chipRemoveBtn" title="Remove">&times;</button>
+        </div>
+
+        <!-- Upload Progress -->
+        <div class="upload-progress-wrap" id="uploadProgressWrap">
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px;">
+            <span id="uploadStatusText" style="color:var(--body);">Uploading...</span>
+            <span id="uploadProgressPct" style="color:var(--secondary); font-weight:600;">0%</span>
+          </div>
+          <div class="progress-bar" style="height:6px; background:#f1f5f9;">
+            <div class="progress-fill" id="uploadProgressBar" style="width:0%; transition: width 0.2s;"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="uploadFileBtn" onclick="uploadProjectFile()" style="width:100%; margin-bottom:20px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload File
+        </button>
+
+        <!-- Tabs Navigation -->
+        <div class="modal-tabs">
+          <button class="modal-tab-btn active" onclick="switchResourceTab('admin-files')">Admin Files</button>
+          <button class="modal-tab-btn" onclick="switchResourceTab('client-files')">Client Files</button>
+          <button class="modal-tab-btn" onclick="switchResourceTab('links')">Links</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div id="tab-admin-files" class="resource-tab-content active">
+          <div id="adminFilesList" class="file-list"></div>
+        </div>
+        <div id="tab-client-files" class="resource-tab-content" style="display:none;">
+          <div id="clientFilesList" class="file-list"></div>
+        </div>
+        <div id="tab-links" class="resource-tab-content" style="display:none;">
+          <div class="link-input-group">
+            <input type="text" id="linkTitle" placeholder="Title (e.g. Figma, Drive)">
+            <input type="text" id="linkUrl" placeholder="https://...">
+            <button class="btn btn-primary" onclick="addProjectLink()">Add</button>
+          </div>
+          <div id="projectLinksList" class="link-list"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -453,7 +519,7 @@
   <div class="modal" id="commentsModal">
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
-        <h2 class="modal-title">Project Collaboration</h2>
+        <h2 class="modal-title"><span class="live-dot"></span>Project Collaboration</h2>
         <button class="modal-close" onclick="closeModal('commentsModal')">&times;</button>
       </div>
       <div class="modal-body">
@@ -480,6 +546,12 @@
       document.getElementById(tabId).classList.add('active');
       document.getElementById('tab-' + tabId).classList.add('active');
     }
+    // Sidebar toggle (mobile)
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    hamburgerBtn.addEventListener('click', () => { sidebar.classList.add('sidebar-open'); overlay.classList.add('active'); document.body.style.overflow='hidden'; });
+    overlay.addEventListener('click', () => { sidebar.classList.remove('sidebar-open'); overlay.classList.remove('active'); document.body.style.overflow=''; });
   </script>
 </body>
 </html>

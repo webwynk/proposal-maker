@@ -301,10 +301,10 @@ app.get('/api/projects/:id/files', authenticateToken, async (req, res) => {
   if (!project) return res.status(404).json({ error: 'Project not found' });
   if (req.user.role === 'client' && project.client_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
 
-  const { data: files, error } = await supabase.from('project_files').select('*, users!project_files_uploaded_by_fkey(name)').eq('project_id', id).order('created_at', { ascending: false });
+  const { data: files, error } = await supabase.from('project_files').select('*, users!project_files_uploaded_by_fkey(name, role)').eq('project_id', id).order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: 'Failed to fetch files' });
   
-  res.json(files.map(f => ({ ...f, uploader_name: f.users?.name, users: undefined })));
+  res.json(files.map(f => ({ ...f, uploader_name: f.users?.name, uploader_role: f.users?.role, users: undefined })));
 });
 
 app.post('/api/projects/:id/files', authenticateToken, upload.single('file'), async (req, res) => {
@@ -314,6 +314,15 @@ app.post('/api/projects/:id/files', authenticateToken, upload.single('file'), as
 
   const { data: project } = await supabase.from('projects').select('client_id').eq('id', id).single();
   if (!project || (req.user.role === 'client' && project.client_id !== req.user.id)) return res.status(403).json({ error: 'Access denied' });
+
+  // Feature 6: 5MB Size limit & File type validation (PDF/Images)
+  const MAX_SIZE = 5 * 1024 * 1024;
+  if (file.size > MAX_SIZE) return res.status(400).json({ error: 'File size exceeds 5MB limit' });
+  
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.mimetype)) {
+    return res.status(400).json({ error: 'Invalid file type. Only PDFs and Images are allowed.' });
+  }
 
   try {
     const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -455,6 +464,34 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) =>
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
+});
+
+// Feature 7: Project Links API
+app.get('/api/projects/:id/links', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { data: links, error } = await supabase.from('project_links').select('*').eq('project_id', id).order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: 'Failed to fetch links' });
+  res.json(links);
+});
+
+app.post('/api/projects/:id/links', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { title, url } = req.body;
+  if (!title || !url) return res.status(400).json({ error: 'Title and URL required' });
+
+  const { data: newLink, error } = await supabase.from('project_links').insert([{
+    project_id: id, title, url
+  }]).select().single();
+
+  if (error) return res.status(500).json({ error: 'Failed to save link' });
+  res.json(newLink);
+});
+
+app.delete('/api/projects/:projectId/links/:linkId', authenticateToken, async (req, res) => {
+  const { projectId, linkId } = req.params;
+  const { error } = await supabase.from('project_links').delete().eq('id', linkId).eq('project_id', projectId);
+  if (error) return res.status(500).json({ error: 'Failed to delete link' });
+  res.json({ message: 'Link deleted' });
 });
 
 // ==================== SEED ADMIN USER ====================

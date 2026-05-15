@@ -89,27 +89,46 @@
   </style>
 </head>
 <body>
+  <!-- Hamburger (mobile) -->
+  <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <div class="app-layout">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <img src="assets/webwynk-logo.webp" alt="WebWynk" class="sidebar-logo">
-        <div class="sidebar-title" style="margin-top:8px;">CRM Dashboard</div>
+        <div class="sidebar-brand">          <div class="sidebar-subtitle">CRM Dashboard</div>
+        </div>
       </div>
+      <div class="nav-section-label">Main</div>
       <nav>
         <a href="admin.html" class="nav-item active" data-page="dashboard">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Dashboard
+          <span>Dashboard</span>
+          <span class="nav-tooltip">Dashboard</span>
         </a>
         <a href="admin-clients.html" class="nav-item" data-page="clients">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Clients
+          <span>Clients</span>
+          <span class="nav-tooltip">Clients</span>
         </a>
       </nav>
       <div class="user-info">
-        <div class="user-name" id="userName">Admin</div>
-        <div class="user-role">Administrator</div>
-        <button class="logout-btn" onclick="logout()">Logout</button>
+        <div class="user-info-card">
+          <div class="user-avatar" id="userAvatar">A</div>
+          <div class="user-details">
+            <div class="user-name" id="userName">Admin</div>
+            <div class="user-role">Administrator</div>
+          </div>
+          <button class="logout-btn" onclick="logout()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Out
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -200,6 +219,38 @@
     }
 
     setGreeting();
+
+    // Sidebar toggle (mobile)
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    function openSidebar() {
+      sidebar.classList.add('sidebar-open');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('sidebar-open');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    hamburgerBtn.addEventListener('click', openSidebar);
+    overlay.addEventListener('click', closeSidebar);
+
+    // Update avatar initials when user name loads
+    const avatarEl = document.getElementById('userAvatar');
+    const observer = new MutationObserver(() => {
+      const name = document.getElementById('userName').textContent.trim();
+      if (name && name !== 'Admin') {
+        avatarEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      }
+    });
+    if (document.getElementById('userName')) {
+      observer.observe(document.getElementById('userName'), { childList: true, characterData: true, subtree: true });
+    }
   </script>
 
 </body>

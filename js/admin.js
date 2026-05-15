@@ -313,8 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr>
           <td>${p.name}</td>
           <td>${p.client_name}</td>
-          <td><span class="project-priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span></td>
-          <td><span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span></td>
+          <td><span class="priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span></td>
           <td>
             <div class="progress-bar">
               <div class="progress-fill" style="width: ${p.progress}%"></div>
@@ -566,73 +565,283 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Project Files
     function openProjectFiles(id) {
       document.getElementById('currentProjectFilesId').value = id;
       document.getElementById('filesModal').classList.add('show');
+      
+      // Feature 8: Reset tabs and load everything
+      switchResourceTab('admin-files');
       loadProjectFiles(id);
+      loadProjectLinks(id);
     }
+
+    window.switchResourceTab = (tabName) => {
+      // Buttons
+      document.querySelectorAll('.modal-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${tabName}'`));
+      });
+      // Contents
+      document.querySelectorAll('.resource-tab-content').forEach(content => {
+        content.style.display = content.id === 'tab-' + tabName ? 'block' : 'none';
+      });
+    };
 
     async function loadProjectFiles(id) {
       const files = await apiCall('/api/projects/' + id + '/files');
-      const container = document.getElementById('projectFilesTable');
+      const adminList = document.getElementById('adminFilesList');
+      const clientList = document.getElementById('clientFilesList');
+      if (!adminList || !clientList) return;
 
-      const getFileExtension = (filename) => {
-        const ext = filename.split('.').pop().toLowerCase();
-        if (['pdf'].includes(ext)) return 'pdf';
-        if (['doc', 'docx', 'txt'].includes(ext)) return 'doc';
-        if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) return 'img';
-        return 'default';
+      const getThumb = (f) => {
+        const ext = f.original_name.split('.').pop().toLowerCase();
+        const isImg = ['jpg','jpeg','png','webp','gif'].includes(ext);
+        if (isImg) return `<div class="file-thumb"><img src="${f.file_path}" alt="Thumb"></div>`;
+        if (ext === 'pdf') return `<div class="file-thumb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>`;
+        return `<div class="file-thumb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg></div>`;
       };
 
-      const isAdmin = (name) => name && (name.toLowerCase().includes('admin') || name.toLowerCase() === 'webwynke');
-
-      container.innerHTML = files.map(f => `
+      const renderFile = (f) => `
         <div class="file-list-item">
-          <div class="file-icon ${getFileExtension(f.original_name)}">${f.original_name.split('.').pop().toUpperCase()}</div>
+          ${getThumb(f)}
           <div class="file-info">
-            <div class="file-name"><a href="${f.file_path.startsWith('http') ? f.file_path : '/uploads/' + f.file_path}" target="_blank">${f.original_name}</a></div>
-            <div class="file-meta">${new Date(f.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})}</div>
+            <a href="${f.file_path}" target="_blank" class="file-name">${f.original_name}</a>
+            <span class="file-meta">${new Date(f.created_at).toLocaleDateString()} · By ${f.uploader_name}</span>
           </div>
-          <span class="file-uploader-badge ${isAdmin(f.uploader_name) ? 'admin' : 'client'}">${f.uploader_name}</span>
-          <button class="btn-icon" style="padding:6px 8px; color:#ef4444;" onclick="deleteProjectFile(${f.id}, ${id})">
+          <button class="btn-icon" style="color:#ef4444;" onclick="deleteProjectFile(${f.id}, ${id})">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
           </button>
         </div>
-      `).join('') || '<div class="empty-state" style="padding:40px;">No files uploaded yet</div>';
+      `;
+
+      const adminFiles = files.filter(f => f.uploader_role === 'admin');
+      const clientFiles = files.filter(f => f.uploader_role === 'client');
+
+      adminList.innerHTML = adminFiles.map(renderFile).join('') || '<div class="empty-state">No admin files uploaded</div>';
+      clientList.innerHTML = clientFiles.map(renderFile).join('') || '<div class="empty-state">No client files uploaded</div>';
     }
+
+    async function loadProjectLinks(id) {
+      const links = await apiCall('/api/projects/' + id + '/links');
+      const list = document.getElementById('projectLinksList');
+      if (!list) return;
+
+      list.innerHTML = links.map(l => `
+        <div class="link-item">
+          <div class="link-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+          <div class="link-title">
+            <a href="${l.url}" target="_blank" style="color:inherit; text-decoration:none;">${l.title}</a>
+          </div>
+          <div class="link-actions">
+            <button class="btn-icon" style="color:#ef4444;" onclick="deleteProjectLink(${l.id}, ${id})">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+      `).join('') || '<div class="empty-state">No links shared yet</div>';
+    }
+
+    window.addProjectLink = async () => {
+      const id = document.getElementById('currentProjectFilesId').value;
+      const title = document.getElementById('linkTitle').value;
+      const url = document.getElementById('linkUrl').value;
+      if (!title || !url) return alert('Enter title and URL');
+
+      const res = await apiCall('/api/projects/' + id + '/links', {
+        method: 'POST',
+        body: JSON.stringify({ title, url })
+      });
+      if (res) {
+        document.getElementById('linkTitle').value = '';
+        document.getElementById('linkUrl').value = '';
+        loadProjectLinks(id);
+      }
+    };
+
+    window.deleteProjectLink = async (linkId, projectId) => {
+      if (!confirm('Remove this link?')) return;
+      await apiCall(`/api/projects/${projectId}/links/${linkId}`, { method: 'DELETE' });
+      loadProjectLinks(projectId);
+    };
 
     async function uploadProjectFile() {
       const id = document.getElementById('currentProjectFilesId').value;
       const fileInput = document.getElementById('fileUploadInput');
-      if (!fileInput.files[0]) return alert('Select a file to upload');
+      const file = fileInput.files[0];
+      if (!file) return alert('Select a file to upload');
+
+      // Feature 6: Local Validation (Max 5MB, PDF/Images)
+      const MAX_SIZE = 5 * 1024 * 1024;
+      if (file.size > MAX_SIZE) return alert('File exceeds 5MB limit');
+      
+      const allowedExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!allowedExts.includes(ext)) return alert('Only PDF and Images are allowed');
+
+      // UI refs
+      const progressWrap = document.getElementById('uploadProgressWrap');
+      const progressBar  = document.getElementById('uploadProgressBar');
+      const pctLabel     = document.getElementById('uploadPct');
+      const statusText   = document.getElementById('uploadStatusText');
+      const uploadBtn    = document.getElementById('uploadFileBtn');
+      const chip         = document.getElementById('filePreviewChip');
+
+      // Show progress, lock button
+      progressWrap.classList.add('show');
+      uploadBtn.classList.add('uploading');
+      uploadBtn.innerHTML = '⏳ Uploading…';
+      progressBar.className = 'upload-progress-bar';
+      progressBar.style.width = '0%';
+      pctLabel.textContent = '0%';
+      statusText.textContent = 'Uploading…';
 
       const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
+      formData.append('file', file);
 
-      try {
-        const res = await fetch(API_URL + '/api/projects/' + id + '/files', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token },
-          body: formData
-        });
-        if (res.ok) {
-          fileInput.value = '';
-          loadProjectFiles(id);
-        } else {
-          const err = await res.json();
-          alert('Upload failed: ' + err.error);
+      const xhr = new XMLHttpRequest();
+
+      // Progress event — fires as bytes are sent
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          progressBar.style.width = pct + '%';
+          pctLabel.textContent = pct + '%';
         }
-      } catch (e) {
-        alert('Upload failed');
-      }
+      });
+
+      // On complete
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          // Success state
+          progressBar.classList.add('success');
+          progressBar.style.width = '100%';
+          pctLabel.textContent = '100%';
+          statusText.textContent = '✓ Upload complete';
+          uploadBtn.classList.remove('uploading');
+          uploadBtn.classList.add('success');
+          uploadBtn.innerHTML = '✓ Uploaded!';
+
+          // Reset after 2s and reload list
+          setTimeout(() => {
+            fileInput.value = '';
+            chip.classList.remove('show');
+            progressWrap.classList.remove('show');
+            progressBar.style.width = '0%';
+            uploadBtn.classList.remove('success', 'uploading');
+            uploadBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File';
+            loadProjectFiles(id);
+            updateSingleBadge(id);
+          }, 2000);
+
+        } else {
+          // Error state
+          let errMsg = 'Upload failed';
+          try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch {}
+          progressBar.classList.add('error');
+          statusText.textContent = '✗ ' + errMsg;
+          pctLabel.textContent = '';
+          uploadBtn.classList.remove('uploading');
+          uploadBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File';
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        progressBar.classList.add('error');
+        statusText.textContent = '✗ Network error — please retry';
+        pctLabel.textContent = '';
+        uploadBtn.classList.remove('uploading');
+        uploadBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload File';
+      });
+
+      xhr.open('POST', API_URL + '/api/projects/' + id + '/files');
+      xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+      xhr.send(formData);
     }
+
+    // Wire up file input → show preview chip
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.getElementById('fileUploadInput');
+      const chip      = document.getElementById('filePreviewChip');
+      const chipName  = document.getElementById('chipFileName');
+      const chipSize  = document.getElementById('chipFileSize');
+      const chipRemove = document.getElementById('chipRemoveBtn');
+      const dropZone   = document.getElementById('fileDropZone');
+
+      if (fileInput) {
+        fileInput.addEventListener('change', () => {
+          const file = fileInput.files[0];
+          handleFileSelect(file);
+        });
+
+        if (chipRemove) {
+          chipRemove.addEventListener('click', (e) => {
+            e.preventDefault();
+            fileInput.value = '';
+            chip.classList.remove('show');
+            document.getElementById('uploadProgressWrap').classList.remove('show');
+          });
+        }
+      }
+
+      // Drag & Drop handlers
+      if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+          dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+          dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+          dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+          const dt = e.dataTransfer;
+          const file = dt.files[0];
+          if (file) {
+            fileInput.files = dt.files;
+            handleFileSelect(file);
+          }
+        }, false);
+      }
+
+      function handleFileSelect(file) {
+        if (file) {
+          chipName.textContent = file.name;
+          chipSize.textContent = file.size > 1024 * 1024
+            ? (file.size / 1024 / 1024).toFixed(1) + ' MB'
+            : Math.round(file.size / 1024) + ' KB';
+          chip.classList.add('show');
+        }
+      }
+    });
+
 
     async function deleteProjectFile(fileId, projectId) {
       if (confirm('Delete this file?')) {
         await apiCall('/api/projects/' + projectId + '/files/' + fileId, { method: 'DELETE' });
         loadProjectFiles(projectId);
+        updateSingleBadge(projectId);
       }
+    }
+
+    async function updateSingleBadge(projectId) {
+      const badge = document.getElementById('file-badge-' + projectId);
+      if (!badge) return;
+      try {
+        const files = await apiCall('/api/projects/' + projectId + '/files');
+        const count = Array.isArray(files) ? files.length : 0;
+        if (count > 0) {
+          badge.textContent = count;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      } catch { /* silently skip */ }
     }
 
     // Proposals (placeholder - same structure as invoices)
@@ -697,6 +906,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeModal(id) {
       document.getElementById(id).classList.remove('show');
+      if (id === 'commentsModal' && window.commentsInterval) {
+        clearInterval(window.commentsInterval);
+        window.commentsInterval = null;
+      }
     }
 
     function logout() {
@@ -856,14 +1069,15 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="project-name" style="font-size:1.25rem;">
                 <span>${p.name}</span>
               </div>
-              <span class="type-pill ${typeClass}" style="margin-top:6px; display:inline-block;">${p.project_type || 'Project'}</span>
               <div style="font-size:0.8rem; color:var(--body); margin-top:8px; display:flex; gap:16px;">
                 <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom; margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Timeline: ${p.start_date || '—'} to ${p.end_date || '—'}</span>
               </div>
             </div>
-            <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-              <span class="project-priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span>
-              <span class="status-badge status-${p.status}">${(p.status || 'discovery').replace('_', ' ')}</span>
+            <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
+              <div style="display:flex; gap:8px; align-items:center;">
+                <span class="type-pill ${typeClass}">${p.project_type || 'Project'}</span>
+                <span class="priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span>
+              </div>
             </div>
           </div>
 
@@ -935,10 +1149,12 @@ document.addEventListener('DOMContentLoaded', () => {
               <button class="btn-icon" onclick="openProjectFiles(${p.id})">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
                 Files
+                <span class="file-count-badge hidden" id="file-badge-${p.id}"></span>
               </button>
               <button class="btn-icon" onclick="openProjectComments(${p.id})">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 Comments
+                <span class="comment-count-badge hidden" id="comment-badge-${p.id}"></span>
               </button>
             </div>
             <div class="project-footer-right">
@@ -974,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="progress-fill" style="width:${totalProgress}%;"></div>
               </div>
             </div>
-            <span class="status-badge status-${p.status}">${(p.status || 'draft').replace('_', ' ')}</span>
+            <!-- Status badge removed -->
           </div>
         </div>
       `;
@@ -985,16 +1201,67 @@ document.addEventListener('DOMContentLoaded', () => {
       const clientProjects = projects.filter(p => String(p.client_id) === String(clientId));
       document.getElementById('countProjects').textContent = clientProjects.length;
 
-      const container = document.getElementById('clientProjectsList'); 
+      const container = document.getElementById('clientProjectsList');
       if (container) {
         container.innerHTML = clientProjects.map(p => renderProjectCard(p)).join('') || '<div class="empty-state">No projects active for this client.</div>';
+        attachCardBadges(clientProjects);
       }
+    }
+
+    // Feature 2 & 5: populate file and unread comment badges in parallel
+    async function attachCardBadges(projectList) {
+      await Promise.all(projectList.map(async (p) => {
+        // File Badge
+        const fileBadge = document.getElementById('file-badge-' + p.id);
+        if (fileBadge) {
+          try {
+            const files = await apiCall('/api/projects/' + p.id + '/files');
+            const count = Array.isArray(files) ? files.length : 0;
+            if (count > 0) {
+              fileBadge.textContent = count;
+              fileBadge.classList.remove('hidden');
+            }
+          } catch {}
+        }
+
+        // Comment Badge (Unread)
+        const commentBadge = document.getElementById('comment-badge-' + p.id);
+        if (commentBadge) {
+          try {
+            const comments = await apiCall('/api/projects/' + p.id + '/comments');
+            if (Array.isArray(comments)) {
+              const lastViewed = localStorage.getItem('comments_last_viewed_' + p.id) || '1970-01-01T00:00:00Z';
+              const unread = comments.filter(c => c.created_at > lastViewed);
+              if (unread.length > 0) {
+                commentBadge.textContent = unread.length;
+                commentBadge.classList.remove('hidden');
+              }
+            }
+          } catch {}
+        }
+      }));
     }
 
     window.openProjectComments = async (id) => {
       document.getElementById('currentCommentProjectId').value = id;
       document.getElementById('commentsModal').classList.add('show');
+      
+      // Update last viewed timestamp and clear badge
+      localStorage.setItem('comments_last_viewed_' + id, new Date().toISOString());
+      const badge = document.getElementById('comment-badge-' + id);
+      if (badge) badge.classList.add('hidden');
+
       loadComments(id);
+      
+      // Feature 4: Live Polling (every 15s)
+      if (window.commentsInterval) clearInterval(window.commentsInterval);
+      window.commentsInterval = setInterval(() => {
+        if (document.getElementById('commentsModal').classList.contains('show')) {
+          loadComments(id);
+        } else {
+          clearInterval(window.commentsInterval);
+        }
+      }, 15000);
     };
 
     async function loadComments(id) {
@@ -1002,18 +1269,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const list = document.getElementById('commentsList');
       if (!list) return;
       const isCommentAdmin = (role) => role && role.toLowerCase() === 'admin';
-      list.innerHTML = comments.map(c => `
-        <div class="comment-item">
-          <div class="comment-avatar ${isCommentAdmin(c.author_role) ? 'comment-avatar-admin' : 'comment-avatar-client'}">${c.author_name ? c.author_name[0].toUpperCase() : 'U'}</div>
-          <div class="comment-bubble">
-            <div class="comment-header">
-              <span class="comment-author">${c.author_name} <small style="opacity:0.6">(${c.author_role})</small></span>
-              <span class="comment-date">${new Date(c.created_at).toLocaleString()}</span>
+      list.innerHTML = comments.map(c => {
+        const isMe = String(c.user_id) === String(user.id);
+        return `
+          <div class="comment-item ${isMe ? 'me' : 'them'}">
+            <div class="comment-avatar">${c.author_name ? c.author_name[0].toUpperCase() : 'U'}</div>
+            <div class="comment-bubble">
+              <div class="comment-header">
+                <span class="comment-author">${c.author_name}</span>
+                <span class="comment-date">${new Date(c.created_at).toLocaleString([], {hour: '2-digit', minute:'2-digit', month:'short', day:'numeric'})}</span>
+              </div>
+              <div class="comment-text">${c.comment}</div>
             </div>
-            <div class="comment-text">${c.comment}</div>
           </div>
-        </div>
-      `).join('') || '<div class="empty-state">No comments yet.</div>';
+        `;
+      }).join('') || '<div class="empty-state">No comments yet.</div>';
       list.scrollTop = list.scrollHeight;
     }
 
@@ -1028,6 +1298,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (res) {
+        localStorage.setItem('comments_last_viewed_' + id, new Date().toISOString());
         document.getElementById('commentText').value = '';
         loadComments(id);
       }
