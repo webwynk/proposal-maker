@@ -7,6 +7,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let serviceCount = 0;
     let milestoneCount = 0;
 
+    // Pagination State
+    const pagination = {
+      dashboardInvoices: { page: 1, limit: 5 },
+      dashboardProjects: { page: 1, limit: 3 },
+      clients: { page: 1, limit: 10 },
+      clientInvoices: { page: 1, limit: 10 },
+      clientProposals: { page: 1, limit: 10 },
+      clientProjects: { page: 1, limit: 5 }
+    };
+
+
     // Check auth
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -76,9 +87,55 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // Pagination Helper
+    function getPagedData(data, type) {
+      const { page, limit } = pagination[type];
+      const start = (page - 1) * limit;
+      return data.slice(start, start + limit);
+    }
+
+    function renderPaginationUI(containerId, totalItems, type) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const { page, limit } = pagination[type];
+      const totalPages = Math.ceil(totalItems / limit);
+
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = `
+        <button class="pagination-btn" ${page === 1 ? 'disabled' : ''} onclick="window.changeAdminPage('${type}', ${page - 1})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Previous
+        </button>
+        <span class="pagination-info">Page ${page} of ${totalPages}</span>
+        <button class="pagination-btn" ${page === totalPages ? 'disabled' : ''} onclick="window.changeAdminPage('${type}', ${page + 1})">
+          Next <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      `;
+    }
+
+    window.changeAdminPage = (type, newPage) => {
+      pagination[type].page = newPage;
+      switch(type) {
+        case 'dashboardInvoices': renderDashboardInvoices(); break;
+        case 'dashboardProjects': renderDashboardProjects(); break;
+        case 'clients': renderClients(); break;
+        case 'clientInvoices': renderClientInvoices(); break;
+        case 'clientProposals': renderClientProposals(); break;
+        case 'clientProjects': renderClientProjects(); break;
+      }
+    };
+
+
     // Dashboard
+    let dashboardStats = null;
+    let dashboardProjects = [];
     async function loadDashboard() {
       const stats = await apiCall('/api/admin/stats');
+      dashboardStats = stats;
       const statIds = ['statClients', 'statInvoices', 'statProjects', 'statRevenue'];
       statIds.forEach(id => {
           const el = document.getElementById(id);
@@ -90,15 +147,20 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('statProjects').textContent = stats.projectCount;
       document.getElementById('statRevenue').textContent = formatCurrency(stats.totalRevenue, 'INR');
 
-      // Render Recent Projects on Dashboard
-      const projectsContainer = document.getElementById('recentProjectsContainer');
-      if (projectsContainer) {
-        const allProjects = await apiCall('/api/projects');
-        projectsContainer.innerHTML = allProjects.slice(0, 3).map(p => renderCompactProjectCard(p)).join('') || '<div class="empty-state">No active projects.</div>';
-      }
+      renderDashboardInvoices();
 
+      dashboardProjects = await apiCall('/api/projects');
+      renderDashboardProjects();
+    }
+
+    function renderDashboardInvoices() {
       const tbody = document.getElementById('recentInvoicesTable');
-      tbody.innerHTML = stats.recentInvoices.map(inv => `
+      if (!tbody || !dashboardStats) return;
+      
+      const data = dashboardStats.recentInvoices || [];
+      const paged = getPagedData(data, 'dashboardInvoices');
+
+      tbody.innerHTML = paged.map(inv => `
         <tr>
           <td>${inv.invoice_number}</td>
           <td><a href="admin-client-view.html?id=${inv.client_id}" style="color:var(--secondary); font-weight:600; text-decoration:none;">${inv.client_name}</a></td>
@@ -106,9 +168,21 @@ document.addEventListener('DOMContentLoaded', () => {
           <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
           <td>${inv.invoice_date || '—'}</td>
         </tr>
-      `).join('');
+      `).join('') || '<tr><td colspan="5" class="empty-state">No recent invoices</td></tr>';
 
+      renderPaginationUI('invoicesPagination', data.length, 'dashboardInvoices');
     }
+
+    function renderDashboardProjects() {
+      const container = document.getElementById('recentProjectsContainer');
+      if (!container) return;
+
+      const paged = getPagedData(dashboardProjects, 'dashboardProjects');
+      container.innerHTML = paged.map(p => renderCompactProjectCard(p)).join('') || '<div class="empty-state">No active projects.</div>';
+      
+      renderPaginationUI('projectsPagination', dashboardProjects.length, 'dashboardProjects');
+    }
+
 
 
     // Clients
@@ -128,7 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderClients() {
       const tbody = document.getElementById('clientsTable');
       if (!tbody || !Array.isArray(clients)) return;
-      tbody.innerHTML = clients.map(c => `
+
+      const paged = getPagedData(clients, 'clients');
+      tbody.innerHTML = paged.map(c => `
         <tr>
           <td>${c.name}</td>
           <td>${c.company}</td>
@@ -144,7 +220,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
         </tr>
       `).join('') || '<tr><td colspan="6" class="empty-state">No clients yet</td></tr>';
+
+      renderPaginationUI('clientsPagination', clients.length, 'clients');
     }
+
 
     window.viewClientProfile = (id) => {
       window.location.href = `admin-client-view.html?id=${id}`;
@@ -993,9 +1072,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    let clientInvoices = [];
     async function loadClientInvoices(clientId) {
       const allInvoices = await apiCall('/api/invoices');
-      const clientInvoices = allInvoices.filter(inv => inv.client_id == clientId);
+      clientInvoices = allInvoices.filter(inv => inv.client_id == clientId);
       
       document.getElementById('countInvoices').textContent = clientInvoices.length;
       
@@ -1012,49 +1092,66 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('clientLTV').textContent = formatCurrency(ltv, 'INR');
       document.getElementById('clientBalance').textContent = formatCurrency(balance, 'INR');
 
-      const tbody = document.getElementById('clientInvoicesTable');
-      if (tbody) {
-        tbody.innerHTML = clientInvoices.map(inv => `
-          <tr>
-            <td>${inv.invoice_number}</td>
-            <td>${formatCurrency(calculateTotal(inv.services), inv.currency)}</td>
-            <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
-            <td>${inv.invoice_date || '—'}</td>
-            <td>
-              <div class="actions-cell">
-                <button class="btn btn-outline btn-sm" onclick="viewInvoice(${inv.id})">View</button>
-                <button class="btn btn-outline btn-sm" onclick="editInvoice(${inv.id})">Edit</button>
-                <button class="btn btn-outline btn-sm" onclick="deleteInvoice(${inv.id})">Delete</button>
-              </div>
-            </td>
-          </tr>
-        `).join('') || '<tr><td colspan="5" class="empty-state">No invoices yet</td></tr>';
-      }
+      renderClientInvoices();
     }
 
+    function renderClientInvoices() {
+      const tbody = document.getElementById('clientInvoicesTable');
+      if (!tbody) return;
+
+      const paged = getPagedData(clientInvoices, 'clientInvoices');
+      tbody.innerHTML = paged.map(inv => `
+        <tr>
+          <td>${inv.invoice_number}</td>
+          <td>${formatCurrency(calculateTotal(inv.services), inv.currency)}</td>
+          <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
+          <td>${inv.invoice_date || '—'}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn btn-outline btn-sm" onclick="viewInvoice(${inv.id})">View</button>
+              <button class="btn btn-outline btn-sm" onclick="editInvoice(${inv.id})">Edit</button>
+              <button class="btn btn-outline btn-sm" onclick="deleteInvoice(${inv.id})">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" class="empty-state">No invoices yet</td></tr>';
+
+      renderPaginationUI('invoicesPagination', clientInvoices.length, 'clientInvoices');
+    }
+
+
+    let clientProposals = [];
     async function loadClientProposals(clientId) {
       const allProposals = await apiCall('/api/proposals');
-      const clientProposals = allProposals.filter(p => p.client_id == clientId);
+      clientProposals = allProposals.filter(p => p.client_id == clientId);
       
-      const tbody = document.getElementById('clientProposalsTable');
-      if (tbody) {
-        tbody.innerHTML = clientProposals.map(p => `
-          <tr>
-            <td>${p.proposal_number}</td>
-            <td>${p.project_title || '—'}</td>
-            <td>${formatCurrency(calculateTotal(p.services), p.currency)}</td>
-            <td><span class="status-badge status-${p.status}">${p.status}</span></td>
-            <td>
-              <div class="actions-cell">
-                <button class="btn btn-outline btn-sm" onclick="viewProposal(${p.id})">View</button>
-                <button class="btn btn-outline btn-sm" onclick="editProposal(${p.id})">Edit</button>
-                <button class="btn btn-outline btn-sm" onclick="deleteProposal(${p.id})">Delete</button>
-              </div>
-            </td>
-          </tr>
-        `).join('') || '<tr><td colspan="5" class="empty-state">No proposals yet</td></tr>';
-      }
+      renderClientProposals();
     }
+
+    function renderClientProposals() {
+      const tbody = document.getElementById('clientProposalsTable');
+      if (!tbody) return;
+
+      const paged = getPagedData(clientProposals, 'clientProposals');
+      tbody.innerHTML = paged.map(p => `
+        <tr>
+          <td>${p.proposal_number}</td>
+          <td>${p.project_title || '—'}</td>
+          <td>${formatCurrency(calculateTotal(p.services), p.currency)}</td>
+          <td><span class="status-badge status-${p.status}">${p.status}</span></td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn btn-outline btn-sm" onclick="viewProposal(${p.id})">View</button>
+              <button class="btn btn-outline btn-sm" onclick="editProposal(${p.id})">Edit</button>
+              <button class="btn btn-outline btn-sm" onclick="deleteProposal(${p.id})">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" class="empty-state">No proposals yet</td></tr>';
+
+      renderPaginationUI('proposalsPagination', clientProposals.length, 'clientProposals');
+    }
+
 
     function renderProjectCard(p) {
       const milestones = p.milestones || [];
@@ -1224,17 +1321,26 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
+    let clientProjectsData = [];
     async function loadClientProjects(clientId) {
       projects = await apiCall('/api/projects');
-      const clientProjects = projects.filter(p => String(p.client_id) === String(clientId));
-      document.getElementById('countProjects').textContent = clientProjects.length;
+      clientProjectsData = projects.filter(p => String(p.client_id) === String(clientId));
+      document.getElementById('countProjects').textContent = clientProjectsData.length;
 
-      const container = document.getElementById('clientProjectsList');
-      if (container) {
-        container.innerHTML = clientProjects.map(p => renderProjectCard(p)).join('') || '<div class="empty-state">No projects active for this client.</div>';
-        attachCardBadges(clientProjects);
-      }
+      renderClientProjects();
     }
+
+    function renderClientProjects() {
+      const container = document.getElementById('clientProjectsList');
+      if (!container) return;
+
+      const paged = getPagedData(clientProjectsData, 'clientProjects');
+      container.innerHTML = paged.map(p => renderProjectCard(p)).join('') || '<div class="empty-state">No projects active for this client.</div>';
+      attachCardBadges(paged);
+
+      renderPaginationUI('projectsPagination', clientProjectsData.length, 'clientProjects');
+    }
+
 
     // Feature 2 & 5: populate file and unread comment badges in parallel
     async function attachCardBadges(projectList) {

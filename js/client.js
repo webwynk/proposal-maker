@@ -5,6 +5,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let proposals = [];
     let projects = [];
 
+    // Pagination State
+    const pagination = {
+      dashboard: { page: 1, limit: 3 },
+      invoices: { page: 1, limit: 10 },
+      proposals: { page: 1, limit: 10 },
+      projects: { page: 1, limit: 5 }
+    };
+
     // Check auth
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -72,6 +80,46 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // Pagination Helper
+    function getPagedData(data, type) {
+      const { page, limit } = pagination[type];
+      const start = (page - 1) * limit;
+      return data.slice(start, start + limit);
+    }
+
+    function renderPaginationUI(containerId, totalItems, type, onPageChange) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const { page, limit } = pagination[type];
+      const totalPages = Math.ceil(totalItems / limit);
+
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = `
+        <button class="pagination-btn" ${page === 1 ? 'disabled' : ''} onclick="window.changeClientPage('${type}', ${page - 1})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Previous
+        </button>
+        <span class="pagination-info">Page ${page} of ${totalPages}</span>
+        <button class="pagination-btn" ${page === totalPages ? 'disabled' : ''} onclick="window.changeClientPage('${type}', ${page + 1})">
+          Next <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      `;
+    }
+
+    window.changeClientPage = (type, newPage) => {
+      pagination[type].page = newPage;
+      switch(type) {
+        case 'dashboard': renderDashboardProjects(); break;
+        case 'invoices': renderInvoices(); break;
+        case 'proposals': renderProposals(); break;
+        case 'projects': renderProjects(); break;
+      }
+    };
+
     // Dashboard
     async function loadDashboard() {
       invoices = await apiCall('/api/my-invoices');
@@ -89,11 +137,17 @@ document.addEventListener('DOMContentLoaded', () => {
         statProjects.textContent = activeProjects.length;
       }
 
-      const recent = Array.isArray(projects) ? projects.slice(0, 3) : [];
+      renderDashboardProjects();
+    }
+
+    function renderDashboardProjects() {
+      const activeProjects = Array.isArray(projects) ? projects.filter(p => p.status !== 'launched') : [];
+      const paged = getPagedData(activeProjects, 'dashboard');
       const container = document.getElementById('recentProjects');
       if (container) {
-        container.innerHTML = recent.map(p => renderProjectCard(p)).join('') || '<p style="color:var(--body); text-align:center;">No active projects</p>';
+        container.innerHTML = paged.map(p => renderProjectCard(p)).join('') || '<p style="color:var(--body); text-align:center;">No active projects</p>';
       }
+      renderPaginationUI('projectsPagination', activeProjects.length, 'dashboard');
     }
 
     // Invoices
@@ -113,7 +167,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderInvoices() {
       const tbody = document.getElementById('invoicesTable');
       if (!tbody) return;
-      tbody.innerHTML = (Array.isArray(invoices) ? invoices : []).map(inv => {
+
+      const data = Array.isArray(invoices) ? invoices : [];
+      const paged = getPagedData(data, 'invoices');
+
+      tbody.innerHTML = paged.map(inv => {
         const total = calculateTotal(inv.services);
         const balance = total - (inv.payment_received || 0);
         return `
@@ -128,6 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
           </tr>
         `;
       }).join('') || '<tr><td colspan="7" class="empty-state">No invoices yet</td></tr>';
+
+      renderPaginationUI('invoicesPagination', data.length, 'invoices');
     }
 
     window.openInvoice = (id) => {
@@ -156,7 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const tbody = document.getElementById('proposalsTable');
       if (!tbody) return;
       
-      tbody.innerHTML = (Array.isArray(proposals) ? proposals : []).map(p => {
+      const data = Array.isArray(proposals) ? proposals : [];
+      const paged = getPagedData(data, 'proposals');
+
+      tbody.innerHTML = paged.map(p => {
         const services = typeof p.services === 'string' ? JSON.parse(p.services || '[]') : (p.services || []);
         return `
           <tr>
@@ -169,6 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
           </tr>
         `;
       }).join('') || '<tr><td colspan="6" class="empty-state">No proposals yet</td></tr>';
+
+      renderPaginationUI('proposalsPagination', data.length, 'proposals');
     }
 
     // Projects
@@ -360,13 +425,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const container = document.getElementById('projectsList');
       if (!container) return;
 
-      if (projects.length === 0) {
+      const data = Array.isArray(projects) ? projects : [];
+      const paged = getPagedData(data, 'projects');
+
+      if (data.length === 0) {
         container.innerHTML = '<div class="empty-state">No projects yet</div>';
         return;
       }
 
-      container.innerHTML = projects.map(p => renderProjectCard(p)).join('');
-      attachCardBadges(projects);
+      container.innerHTML = paged.map(p => renderProjectCard(p)).join('');
+      attachCardBadges(paged);
+      renderPaginationUI('projectsPagination', data.length, 'projects');
     }
 
     async function attachCardBadges(projectList) {

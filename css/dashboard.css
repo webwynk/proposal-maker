@@ -1,4 +1,4 @@
-/* WebWynk CRM — Design System */
+﻿/* WebWynk CRM â€” Design System */
 
 :root {
   --primary: #ff5028;
@@ -32,7 +32,7 @@ body {
 }
 
 
-/* ========== Sidebar — Light Clean ========== */
+/* ========== Sidebar â€” Light Clean ========== */
 
 .sidebar {
   background: var(--surface);
@@ -1860,7 +1860,7 @@ tr:hover {
 }
 
 
-/* ========== File Upload — Progress & Zone ========== */
+/* ========== File Upload â€” Progress & Zone ========== */
 
 .file-upload-zone {
   display: flex;
@@ -2129,7 +2129,7 @@ tr:hover {
   }
 }
 
-/* ===== Tablet: Collapsed Icon Sidebar (768–1024px) ===== */
+/* ===== Tablet: Collapsed Icon Sidebar (768â€“1024px) ===== */
 @media (max-width: 1024px) and (min-width: 769px) {
   .app-layout {
     grid-template-columns: 68px 1fr;
@@ -2379,4 +2379,46 @@ tr:hover {
 .status-badge-view.ms-pending {
   background: var(--bg);
   color: var(--muted);
+}
+/* ========== Pagination ========== */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    padding: 16px 0;
+}
+
+.pagination-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--body);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: var(--secondary);
+    color: var(--secondary);
+    background: rgba(120, 100, 240, 0.02);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 500;
+    margin: 0 8px;
 }
