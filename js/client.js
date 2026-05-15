@@ -755,5 +755,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
+
+    window.logout = () => {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    };
 });
+
   

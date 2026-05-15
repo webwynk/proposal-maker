@@ -19,9 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   let clients = [];
+  let selectedClientId = null;
   let activeRegion = 'india'; // 'india' | 'worldwide'
   let milestoneCounter = 0;
   let serviceCounter = 0;
+
 
   // ── DOM References ──
   const $ = (id) => document.getElementById(id);
@@ -121,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (preselectedId) {
         select.value = preselectedId;
+        selectedClientId = preselectedId;
         // Trigger change to populate fields
         const client = clients.find(c => c.id == preselectedId);
         if (client) {
@@ -138,8 +141,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       select.addEventListener('change', (e) => {
+        selectedClientId = e.target.value || null;
         const client = clients.find(c => c.id == e.target.value);
         if (client) {
+
           $('clientName').value = client.name;
           $('clientCompany').value = client.company;
           $('clientEmail').value = client.email;
@@ -484,10 +489,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
 
-      // Find client ID by email
-      const client = clients.find(c => c.email === data.client_email);
-      if (!client) return alert('Please select an existing client or ensure the email matches a registered client.');
-      data.client_id = client.id;
+      // Link to client
+      let finalClientId = selectedClientId;
+      if (!finalClientId && data.client_email) {
+        const client = clients.find(c => c.email.toLowerCase().trim() === data.client_email.toLowerCase().trim());
+        if (client) finalClientId = client.id;
+      }
+
+      if (!finalClientId) return alert('Please select an existing client or ensure the email matches a registered client.');
+      data.client_id = finalClientId;
+
 
       const btn = $('saveBtn');
       btn.disabled = true;
