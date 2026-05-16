@@ -471,6 +471,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 Comments
                 <span class="comment-count-badge hidden" id="comment-badge-${p.id}"></span>
               </button>
+              <button class="btn-icon" onclick="openProjectActivity(${p.id})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-6"/></svg>
+                Activity
+              </button>
             </div>
           </div>
         </div>
@@ -644,6 +648,36 @@ document.addEventListener('DOMContentLoaded', () => {
       loadProjectFiles(id);
       loadProjectLinks(id);
     };
+
+    window.openProjectActivity = async (id) => {
+      const modal = document.getElementById('activityModal');
+      const input = document.getElementById('currentActivityProjectId');
+      if (!modal || !input) return;
+      input.value = id;
+      modal.classList.add('show');
+      await loadProjectActivity(id);
+    };
+
+    async function loadProjectActivity(id) {
+      const activity = await apiCall('/api/projects/' + id + '/activity');
+      const list = document.getElementById('activityList');
+      if (!list) return;
+      if (!Array.isArray(activity) || activity.length === 0) {
+        list.innerHTML = '<div class="empty-state">No activity yet for this project.</div>';
+        return;
+      }
+
+      list.innerHTML = activity.map(a => `
+        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:12px; margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;">
+            <strong style="font-size:0.92rem;">${escapeHtml(a.title || 'Activity')}</strong>
+            <span style="font-size:0.75rem; color:#6b7280;">${new Date(a.created_at).toLocaleString()}</span>
+          </div>
+          <div style="font-size:0.82rem; color:#4b5563; margin-bottom:6px;">By ${escapeHtml(a.actor_name || 'System')} (${escapeHtml(a.actor_role || 'system')})</div>
+          ${a.description ? `<div style="font-size:0.85rem; color:#374151;">${escapeHtml(a.description)}</div>` : ''}
+        </div>
+      `).join('');
+    }
 
     window.switchResourceTab = (tabName) => {
       document.querySelectorAll('.modal-tab-btn').forEach(btn => {

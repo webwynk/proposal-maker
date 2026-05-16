@@ -37,6 +37,36 @@ function validateUrl(url) {
   }
 }
 
+async function logActivity({
+  actorId,
+  clientId,
+  projectId = null,
+  invoiceId = null,
+  proposalId = null,
+  eventType,
+  title,
+  description = null,
+  metadata = {}
+}) {
+  try {
+    if (!clientId || !eventType || !title) return;
+    await supabase.from('activity_logs').insert([{
+      actor_id: actorId,
+      client_id: clientId,
+      project_id: projectId,
+      invoice_id: invoiceId,
+      proposal_id: proposalId,
+      event_type: eventType,
+      title,
+      description,
+      metadata,
+      created_at: new Date().toISOString()
+    }]);
+  } catch (err) {
+    console.error('[Activity Log] Failed:', err?.message || err);
+  }
+}
+
 function makeRateLimiter({ windowMs, max, key = (req) => req.ip }) {
   const hits = new Map();
   return (req, res, next) => {
@@ -207,6 +237,14 @@ app.post('/api/invoices', authenticateToken, requireAdmin, async (req, res) => {
   if (client) sendInvoiceEmail(client.email, newInvoice, client.name);
   
   createNotification(client_id, 'New Invoice', `Invoice ${invoice_number} has been generated.`, 'invoice', `/invoice.html?id=${newInvoice.id}&view=true`);
+  await logActivity({
+    actorId: req.user.id,
+    clientId: client_id,
+    invoiceId: newInvoice.id,
+    eventType: 'invoice_created',
+    title: `Invoice ${invoice_number} created`,
+    description: `Status: ${newInvoice.status || 'draft'}`
+  });
   
   res.json(newInvoice);
 });
@@ -236,6 +274,14 @@ app.put('/api/invoices/:id', authenticateToken, requireAdmin, async (req, res) =
   }).eq('id', id).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to update invoice' });
+  await logActivity({
+    actorId: req.user.id,
+    clientId: updated.client_id,
+    invoiceId: updated.id,
+    eventType: updated.status === 'paid' ? 'invoice_paid' : 'invoice_updated',
+    title: `Invoice ${updated.invoice_number} ${updated.status === 'paid' ? 'marked paid' : 'updated'}`,
+    description: `Status: ${updated.status || 'draft'}`
+  });
   res.json(updated);
 });
 
@@ -291,6 +337,14 @@ app.post('/api/projects', authenticateToken, requireAdmin, writeRateLimiter, asy
   if (client) sendProjectUpdateEmail(client.email, newProject, client.name, "Your project has been successfully initiated.");
   
   createNotification(client_id, 'New Project Assigned', `You have been assigned to: ${name}`, 'project', `/client-projects.html`);
+  await logActivity({
+    actorId: req.user.id,
+    clientId: client_id,
+    projectId: newProject.id,
+    eventType: 'project_created',
+    title: `Project created: ${name}`,
+    description: `Status: ${newProject.status || 'discovery'}`
+  });
 
   res.json(newProject);
 });
@@ -353,6 +407,14 @@ app.put('/api/projects/:id', authenticateToken, requireAdmin, writeRateLimiter, 
   if (status && oldProject && status !== oldProject.status) {
     const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
     createNotification(client_id, 'Project Status Updated', `${name} is now: ${statusLabel}`, 'project', `/client-projects.html`);
+    await logActivity({
+      actorId: req.user.id,
+      clientId: client_id,
+      projectId: updated.id,
+      eventType: 'project_status_changed',
+      title: `Project status changed: ${name}`,
+      description: `${oldProject.status || 'unknown'} -> ${status}`
+    });
   }
 
   res.json(updated);
@@ -400,6 +462,14 @@ app.post('/api/projects/:id/comments', authenticateToken, writeRateLimiter, asyn
 
   const { data: newComment, error } = await supabase.from('project_comments').insert([{ project_id: id, user_id: req.user.id, comment: comment.trim() }]).select('*, users!project_comments_user_id_fkey(name, role)').single();
   if (error) return res.status(500).json({ error: 'Failed to add comment' });
+  await logActivity({
+    actorId: req.user.id,
+    clientId: project.client_id,
+    projectId: Number(id),
+    eventType: 'comment_added',
+    title: 'New project comment',
+    description: comment.trim().slice(0, 160)
+  });
   res.json({ ...newComment, author_name: newComment.users?.name, author_role: newComment.users?.role, users: undefined });
 });
 
@@ -436,6 +506,14 @@ app.post('/api/projects/:id/updates', authenticateToken, requireAdmin, writeRate
   }
   
   createNotification(project.client_id, 'Project Update', `New update for project: ${project.name}`, 'project', `/client-projects.html`);
+  await logActivity({
+    actorId: req.user.id,
+    clientId: project.client_id,
+    projectId: Number(id),
+    eventType: 'project_update_posted',
+    title: `Update posted for ${project.name}`,
+    description: content.slice(0, 160)
+  });
 
   res.json(formattedUpdate);
 });
@@ -483,6 +561,14 @@ app.post('/api/projects/:id/files', authenticateToken, upload.single('file'), as
     
     if (dbError) throw dbError;
     
+    await logActivity({
+      actorId: req.user.id,
+      clientId: project.client_id,
+      projectId: Number(id),
+      eventType: 'file_uploaded',
+      title: `File uploaded: ${file.originalname}`
+    });
+
     res.json({ ...newFile, uploader_name: newFile.users?.name, users: undefined });
   } catch (err) {
     console.error('Upload Error:', err);
@@ -504,6 +590,13 @@ app.delete('/api/projects/:projectId/files/:fileId', authenticateToken, async (r
     }
     
     await supabase.from('project_files').delete().eq('id', fileId);
+    await logActivity({
+      actorId: req.user.id,
+      clientId: fileRecord.client_id,
+      projectId: Number(projectId),
+      eventType: 'file_deleted',
+      title: `File deleted: ${fileRecord.original_name || 'file'}`
+    });
     res.json({ message: 'File deleted successfully' });
   } catch (err) {
     console.error('Delete Error:', err);
@@ -546,6 +639,14 @@ app.post('/api/proposals', authenticateToken, requireAdmin, async (req, res) => 
         // We don't await the email so the response stays fast, but we catch errors
         sendProposalEmail(client.email, newProposal, client.name).catch(err => console.error('[Server] Proposal email failed:', err));
         createNotification(client_id, 'New Proposal Ready', `Review your proposal for: ${project_title}`, 'proposal', `/proposal.html?id=${newProposal.id}&view=true`);
+        await logActivity({
+          actorId: req.user.id,
+          clientId: client_id,
+          proposalId: newProposal.id,
+          eventType: 'proposal_created',
+          title: `Proposal ${proposal_number} created`,
+          description: `Status: ${newProposal.status || 'draft'}`
+        });
       } else {
         console.warn(`[Server] Could not find client with ID ${client_id} for proposal email`);
       }
@@ -580,6 +681,14 @@ app.put('/api/proposals/:id', authenticateToken, requireAdmin, async (req, res) 
   }).eq('id', req.params.id).select().single();
 
   if (error) return res.status(500).json({ error: 'Failed to update proposal' });
+  await logActivity({
+    actorId: req.user.id,
+    clientId: updated.client_id,
+    proposalId: updated.id,
+    eventType: updated.status === 'accepted' ? 'proposal_accepted' : (updated.status === 'rejected' ? 'proposal_rejected' : 'proposal_updated'),
+    title: `Proposal ${updated.proposal_number} ${updated.status || 'updated'}`,
+    description: `Status: ${updated.status || 'draft'}`
+  });
   res.json(updated);
 });
 
@@ -798,6 +907,50 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
 
   if (error) return res.status(500).json({ error: 'Failed to mark notification as read' });
   res.json({ message: 'Notification marked as read' });
+});
+
+// ==================== ACTIVITY TIMELINE ====================
+
+app.get('/api/projects/:id/activity', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { data: project } = await supabase.from('projects').select('id, client_id').eq('id', id).single();
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (req.user.role === 'client' && project.client_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+
+  const { data, error } = await supabase
+    .from('activity_logs')
+    .select('*, users!activity_logs_actor_id_fkey(name, role)')
+    .eq('project_id', id)
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  if (error) return res.status(500).json({ error: 'Failed to fetch project activity' });
+
+  res.json((data || []).map(a => ({
+    ...a,
+    actor_name: a.users?.name || 'System',
+    actor_role: a.users?.role || 'system',
+    users: undefined
+  })));
+});
+
+app.get('/api/clients/:id/activity', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { data, error } = await supabase
+    .from('activity_logs')
+    .select('*, users!activity_logs_actor_id_fkey(name, role)')
+    .eq('client_id', id)
+    .order('created_at', { ascending: false })
+    .limit(300);
+
+  if (error) return res.status(500).json({ error: 'Failed to fetch client activity' });
+
+  res.json((data || []).map(a => ({
+    ...a,
+    actor_name: a.users?.name || 'System',
+    actor_role: a.users?.role || 'system',
+    users: undefined
+  })));
 });
 
 

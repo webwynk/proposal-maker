@@ -1203,6 +1203,35 @@ document.addEventListener('DOMContentLoaded', () => {
       renderClientProposals();
     }
 
+    let clientActivity = [];
+    async function loadClientActivity(clientId) {
+      clientActivity = await apiCall('/api/clients/' + clientId + '/activity');
+      renderClientActivity();
+    }
+
+    function renderClientActivity() {
+      const list = document.getElementById('clientActivityList');
+      if (!list) return;
+
+      if (!Array.isArray(clientActivity) || clientActivity.length === 0) {
+        list.innerHTML = '<div class="empty-state">No activity logged yet for this client.</div>';
+        return;
+      }
+
+      list.innerHTML = clientActivity.map(a => `
+        <div class="card" style="padding:14px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;">
+            <strong style="font-size:0.95rem;">${escapeHtml(a.title || 'Activity')}</strong>
+            <span style="font-size:0.75rem; color:var(--muted);">${new Date(a.created_at).toLocaleString()}</span>
+          </div>
+          <div style="font-size:0.8rem; color:var(--body); margin-bottom:6px;">
+            By ${escapeHtml(a.actor_name || 'System')} (${escapeHtml(a.actor_role || 'system')}) · ${escapeHtml(a.event_type || 'event')}
+          </div>
+          ${a.description ? `<div style="font-size:0.86rem; color:#374151;">${escapeHtml(a.description)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
     function renderClientProposals() {
       const tbody = document.getElementById('clientProposalsTable');
       if (!tbody) return;
@@ -1513,6 +1542,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const clientId = urlParams.get('id');
         loadEmailLogs(clientId);
+      }
+      if (tabId === 'activity') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientId = urlParams.get('id');
+        loadClientActivity(clientId);
       }
     };
 
