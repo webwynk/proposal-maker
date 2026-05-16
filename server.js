@@ -14,8 +14,68 @@ const { sendInvoiceEmail, sendProjectUpdateEmail, sendProposalEmail, sendMilesto
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+function isNonEmptyString(value, max = 1000) {
+  return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max;
+}
+
+function validateEmail(email) {
+  return typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateUrl(url) {
+  if (typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function makeRateLimiter({ windowMs, max, key = (req) => req.ip }) {
+  const hits = new Map();
+  return (req, res, next) => {
+    const now = Date.now();
+    const userKey = key(req) || req.ip || 'unknown';
+    const record = hits.get(userKey);
+    if (!record || now > record.resetAt) {
+      hits.set(userKey, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+
+    if (record.count >= max) {
+      return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+
+    record.count += 1;
+    hits.set(userKey, record);
+    next();
+  };
+}
+
+const loginRateLimiter = makeRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  key: (req) => `${req.ip}:${(req.body?.email || '').toLowerCase()}`
+});
+const writeRateLimiter = makeRateLimiter({ windowMs: 60 * 1000, max: 120 });
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.length === 0) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS not allowed'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname, { index: false }));
@@ -30,9 +90,11 @@ app.get('/', (req, res) => {
 
 // ==================== AUTH ROUTES ====================
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginRateLimiter, async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+  if (!validateEmail(email) || !isNonEmptyString(password, 200)) {
+    return res.status(400).json({ error: 'Valid email and password are required' });
+  }
 
   const { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
   if (error || !user || !user.is_active) return res.status(401).json({ error: 'Invalid credentials or account deactivated' });
@@ -44,9 +106,11 @@ app.post('/api/login', async (req, res) => {
   res.json({ token, user: { id: user.id, name: user.name, company: user.company, email: user.email, role: user.role } });
 });
 
-app.post('/api/change-password', authenticateToken, async (req, res) => {
+app.post('/api/change-password', authenticateToken, writeRateLimiter, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Current and new password required' });
+  if (!isNonEmptyString(currentPassword, 200) || !isNonEmptyString(newPassword, 200)) {
+    return res.status(400).json({ error: 'Current and new password required' });
+  }
   if (newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
   const { data: user } = await supabase.from('users').select('password').eq('id', req.user.id).single();
@@ -69,9 +133,12 @@ app.get('/api/clients', authenticateToken, requireAdmin, async (req, res) => {
   res.json(clients);
 });
 
-app.post('/api/clients', authenticateToken, requireAdmin, async (req, res) => {
+app.post('/api/clients', authenticateToken, requireAdmin, writeRateLimiter, async (req, res) => {
   const { name, company, email, phone, password } = req.body;
-  if (!name || !company || !email || !password) return res.status(400).json({ error: 'Required fields missing' });
+  if (!isNonEmptyString(name, 120) || !isNonEmptyString(company, 120) || !validateEmail(email) || !isNonEmptyString(password, 200)) {
+    return res.status(400).json({ error: 'Required fields missing or invalid' });
+  }
+  if (phone && !isNonEmptyString(phone, 30)) return res.status(400).json({ error: 'Invalid phone number' });
 
   const { data: existing } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
   if (existing) return res.status(400).json({ error: 'Email already exists' });
@@ -83,10 +150,15 @@ app.post('/api/clients', authenticateToken, requireAdmin, async (req, res) => {
   res.json(newUser);
 });
 
-app.put('/api/clients/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.put('/api/clients/:id', authenticateToken, requireAdmin, writeRateLimiter, async (req, res) => {
   const { id } = req.params;
   const { name, company, email, phone, is_active } = req.body;
   
+  if (!isNonEmptyString(name, 120) || !isNonEmptyString(company, 120) || !validateEmail(email)) {
+    return res.status(400).json({ error: 'Invalid client payload' });
+  }
+  if (phone && !isNonEmptyString(phone, 30)) return res.status(400).json({ error: 'Invalid phone number' });
+
   const { error } = await supabase.from('users').update({ name, company, email, phone, is_active: !!is_active, updated_at: new Date() }).eq('id', id).eq('role', 'client');
   if (error) return res.status(500).json({ error: 'Failed to update client' });
   res.json({ message: 'Client updated successfully' });
@@ -199,9 +271,13 @@ app.get('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
   })));
 });
 
-app.post('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
+app.post('/api/projects', authenticateToken, requireAdmin, writeRateLimiter, async (req, res) => {
   const { client_id, name, project_type, status, progress, milestones, notes, priority, start_date, end_date, external_links } = req.body;
-  if (!client_id || !name) return res.status(400).json({ error: 'Client and project name are required' });
+  if (!client_id || !isNonEmptyString(name, 150)) return res.status(400).json({ error: 'Client and project name are required' });
+  if (notes && !isNonEmptyString(notes, 5000)) return res.status(400).json({ error: 'Notes too long or invalid' });
+  if (milestones && (!Array.isArray(milestones) || milestones.length > 4)) {
+    return res.status(400).json({ error: 'Milestones must be an array with at most 4 items' });
+  }
 
   const { data: newProject, error } = await supabase.from('projects').insert([{
     client_id, name, project_type, status: status || 'discovery', progress: progress || 0, milestones: milestones || [], notes,
@@ -219,10 +295,16 @@ app.post('/api/projects', authenticateToken, requireAdmin, async (req, res) => {
   res.json(newProject);
 });
 
-app.put('/api/projects/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.put('/api/projects/:id', authenticateToken, requireAdmin, writeRateLimiter, async (req, res) => {
   const { id } = req.params;
   const { client_id, name, project_type, status, progress, milestones, notes, priority, start_date, end_date, external_links } = req.body;
-  
+  if (!client_id || !isNonEmptyString(name, 150)) return res.status(400).json({ error: 'Client and project name are required' });
+  if (notes && !isNonEmptyString(notes, 5000)) return res.status(400).json({ error: 'Notes too long or invalid' });
+  if (milestones && (!Array.isArray(milestones) || milestones.length > 4)) {
+    return res.status(400).json({ error: 'Milestones must be an array with at most 4 items' });
+  }
+  if (external_links && !Array.isArray(external_links)) return res.status(400).json({ error: 'Invalid links payload' });
+
   let linksToSave = external_links;
   if (linksToSave === undefined) {
     const { data: currentProject } = await supabase.from('projects').select('external_links').eq('id', id).single();
@@ -299,17 +381,24 @@ app.get('/api/my-projects', authenticateToken, requireClient, async (req, res) =
 
 app.get('/api/projects/:id/comments', authenticateToken, async (req, res) => {
   const { id } = req.params;
+  const { data: project } = await supabase.from('projects').select('client_id').eq('id', id).single();
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (req.user.role === 'client' && project.client_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+
   const { data: comments, error } = await supabase.from('project_comments').select('*, users!project_comments_user_id_fkey(name, role)').eq('project_id', id).order('created_at', { ascending: true });
   if (error) return res.status(500).json({ error: 'Failed to fetch comments' });
   res.json(comments.map(c => ({ ...c, author_name: c.users?.name, author_role: c.users?.role, users: undefined })));
 });
 
-app.post('/api/projects/:id/comments', authenticateToken, async (req, res) => {
+app.post('/api/projects/:id/comments', authenticateToken, writeRateLimiter, async (req, res) => {
   const { id } = req.params;
   const { comment } = req.body;
-  if (!comment) return res.status(400).json({ error: 'Comment is required' });
+  if (!isNonEmptyString(comment, 3000)) return res.status(400).json({ error: 'Comment is required' });
+  const { data: project } = await supabase.from('projects').select('client_id').eq('id', id).single();
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (req.user.role === 'client' && project.client_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
 
-  const { data: newComment, error } = await supabase.from('project_comments').insert([{ project_id: id, user_id: req.user.id, comment }]).select('*, users!project_comments_user_id_fkey(name, role)').single();
+  const { data: newComment, error } = await supabase.from('project_comments').insert([{ project_id: id, user_id: req.user.id, comment: comment.trim() }]).select('*, users!project_comments_user_id_fkey(name, role)').single();
   if (error) return res.status(500).json({ error: 'Failed to add comment' });
   res.json({ ...newComment, author_name: newComment.users?.name, author_role: newComment.users?.role, users: undefined });
 });
@@ -329,10 +418,10 @@ app.get('/api/projects/:id/updates', authenticateToken, async (req, res) => {
   res.json(updates.map(u => ({ ...u, author_name: u.users?.name, users: undefined })));
 });
 
-app.post('/api/projects/:id/updates', authenticateToken, requireAdmin, async (req, res) => {
+app.post('/api/projects/:id/updates', authenticateToken, requireAdmin, writeRateLimiter, async (req, res) => {
   const { id } = req.params;
   const { content } = req.body;
-  if (!content) return res.status(400).json({ error: 'Content is required' });
+  if (!isNonEmptyString(content, 5000)) return res.status(400).json({ error: 'Content is required' });
 
   const { data: newUpdate, error } = await supabase.from('project_updates').insert([{ project_id: id, content, created_by: req.user.id }]).select('*, users!project_updates_created_by_fkey(name)').single();
   if (error) return res.status(500).json({ error: 'Failed to add update' });
@@ -566,10 +655,10 @@ app.get('/api/projects/:id/links', authenticateToken, async (req, res) => {
 
 
 
-app.post('/api/projects/:id/links', authenticateToken, async (req, res) => {
+app.post('/api/projects/:id/links', authenticateToken, writeRateLimiter, async (req, res) => {
   const { id } = req.params;
   const { title, url } = req.body;
-  if (!title || !url) return res.status(400).json({ error: 'Title and URL required' });
+  if (!isNonEmptyString(title, 120) || !validateUrl(url)) return res.status(400).json({ error: 'Valid title and URL required' });
 
   // Fetch current links
   const { data: project, error: fetchError } = await supabase.from('projects').select('external_links, client_id').eq('id', id).single();
@@ -584,8 +673,8 @@ app.post('/api/projects/:id/links', authenticateToken, async (req, res) => {
 
   const newLink = {
     id: Date.now(),
-    title,
-    url,
+    title: title.trim(),
+    url: url.trim(),
     creator_name: req.user.name,
     creator_role: req.user.role,
     created_by: req.user.id,

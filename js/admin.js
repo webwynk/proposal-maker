@@ -1,5 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
     const API_URL = '';
+    const escapeHtml = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+    const safeUrl = (value) => {
+      try {
+        const u = new URL(String(value || ''), window.location.origin);
+        if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+      } catch {}
+      return '#';
+    };
     let clients = [];
     let invoices = [];
     let proposals = [];
@@ -207,10 +220,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const paged = getPagedData(clients, 'clients');
       tbody.innerHTML = paged.map(c => `
         <tr>
-          <td>${c.name}</td>
-          <td>${c.company}</td>
-          <td>${c.email}</td>
-          <td>${c.phone || '—'}</td>
+          <td>${escapeHtml(c.name)}</td>
+          <td>${escapeHtml(c.company)}</td>
+          <td>${escapeHtml(c.email)}</td>
+          <td>${escapeHtml(c.phone || '—')}</td>
           <td><span class="status-badge ${c.is_active ? 'status-paid' : 'status-draft'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
           <td>
             <div class="actions-cell">
@@ -735,7 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="file-list-item">
           ${getThumb(f)}
           <div class="file-info">
-            <a href="${f.file_path}" target="_blank" class="file-name">${f.original_name}</a>
+            <a href="${safeUrl(f.file_path)}" target="_blank" rel="noopener noreferrer" class="file-name">${escapeHtml(f.original_name)}</a>
             <span class="file-meta">${new Date(f.created_at).toLocaleDateString()} · By ${f.uploader_name}</span>
           </div>
           <button class="btn-icon" style="color:#ef4444;" onclick="deleteProjectFile(${f.id}, ${id})">
@@ -760,8 +773,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="link-item">
           <div class="link-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
           <div class="link-title">
-            <a href="${l.url}" target="_blank" style="color:inherit; text-decoration:none;">${l.title}</a>
-            <div style="font-size:0.7rem; color:var(--muted); margin-top:2px;">Shared by ${l.creator_name} (${l.creator_role})</div>
+            <a href="${safeUrl(l.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">${escapeHtml(l.title)}</a>
+            <div style="font-size:0.7rem; color:var(--muted); margin-top:2px;">Shared by ${escapeHtml(l.creator_name)} (${escapeHtml(l.creator_role)})</div>
           </div>
           <div class="link-actions">
             <button class="btn-icon" style="color:#ef4444;" onclick="deleteProjectLink(${l.id}, ${id})">
@@ -1295,7 +1308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                       ${getStatusIcon(m.status || 'started')}
                       <span>${getStatusLabel(m.status || 'started')}</span>
                     </div>
-                    <div class="milestone-card-title">${m.title}</div>
+                    <div class="milestone-card-title">${escapeHtml(m.title)}</div>
                     ${m.description ? `<div class="milestone-card-desc">${m.description}</div>` : ''}
                     
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:16px; border-top:1px solid rgba(0,0,0,0.05);">
@@ -1463,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="comment-author">${c.author_name}</span>
                 <span class="comment-date">${new Date(c.created_at).toLocaleString([], {hour: '2-digit', minute:'2-digit', month:'short', day:'numeric'})}</span>
               </div>
-              <div class="comment-text">${c.comment}</div>
+              <div class="comment-text">${escapeHtml(c.comment)}</div>
             </div>
           </div>
         `;

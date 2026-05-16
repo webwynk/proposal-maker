@@ -1,5 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
     const API_URL = '';
+    const escapeHtml = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+    const safeUrl = (value) => {
+      try {
+        const u = new URL(String(value || ''), window.location.origin);
+        if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+      } catch {}
+      return '#';
+    };
     
     let invoices = [];
     let proposals = [];
@@ -63,8 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="notif-item ${!n.is_read ? 'unread' : ''}" onclick="handleNotifClick('${n.id}', '${n.link}')">
             <div class="notif-icon ${n.type}">${icon}</div>
             <div class="notif-content">
-              <div class="notif-title">${n.title}</div>
-              <div class="notif-msg">${n.message}</div>
+              <div class="notif-title">${escapeHtml(n.title)}</div>
+              <div class="notif-msg">${escapeHtml(n.message)}</div>
               <div class="notif-time">${formatTime(n.created_at)}</div>
             </div>
           </div>
@@ -359,9 +372,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderProjectCard(p) {
       const milestones = p.milestones || [];
-      // Calculate progress: each COMPLETED milestone is 25%
+      // Progress based on completion ratio; supports 1..4 milestones correctly
       const completedCount = milestones.filter(m => m.status === 'completed' || parseInt(m.progress) === 100).length;
-      const totalProgress = Math.min(100, completedCount * 25);
+      const totalProgress = milestones.length ? Math.round((completedCount / milestones.length) * 100) : 0;
 
       const typeClass = (p.project_type || '').toLowerCase().replace(' ', '-');
 
@@ -382,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="project-header">
             <div style="flex:1;">
               <div class="project-name" style="font-size:1.25rem;">
-                ${p.name}
+                ${escapeHtml(p.name)}
               </div>
               <div style="font-size:0.8rem; color:var(--body); margin-top:8px; display:flex; gap:16px;">
                 <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom; margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Timeline: ${p.start_date || '—'} to ${p.end_date || '—'}</span>
@@ -390,14 +403,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
               <div style="display:flex; gap:8px; align-items:center;">
-                <span class="type-pill ${typeClass}">${p.project_type || 'Project'}</span>
-                <span class="priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${p.priority || 'Medium'}</span>
+                <span class="type-pill ${typeClass}">${escapeHtml(p.project_type || 'Project')}</span>
+                <span class="priority-badge priority-${(p.priority || 'Medium').toLowerCase()}">${escapeHtml(p.priority || 'Medium')}</span>
               </div>
             </div>
           </div>
 
           <div class="project-info-short" style="margin:20px 0; font-size:0.95rem; color:var(--body); line-height:1.6; width: 100%;">
-            ${p.notes || 'No description provided.'}
+            ${escapeHtml(p.notes || 'No description provided.')}
           </div>
 
           <div class="project-progress-section">
@@ -429,8 +442,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${getStatusIcon(m.status || 'started')}
                     <span>${getStatusLabel(m.status || 'started')}</span>
                   </div>
-                  <div class="milestone-card-title">${m.title}</div>
-                  ${m.description ? `<div class="milestone-card-desc">${m.description}</div>` : ''}
+                  <div class="milestone-card-title">${escapeHtml(m.title)}</div>
+                  ${m.description ? `<div class="milestone-card-desc">${escapeHtml(m.description)}</div>` : ''}
                   
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:16px; border-top:1px solid rgba(0,0,0,0.05);">
                     <div style="display:flex; align-items:center; gap:6px; color:var(--muted); font-size:0.75rem; font-weight:500;">
@@ -438,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
                       <span>${m.end_date ? new Date(m.end_date).toLocaleDateString('en-GB', {day:'numeric', month:'short'}) : 'TBD'}</span>
                     </div>
                     <div style="display:flex; gap:8px;">
-                      ${m.link ? `<a href="${m.link}" target="_blank" title="Resource Link" onclick="event.stopPropagation()" style="color:var(--muted); transition:color 0.2s;" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='var(--muted)'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
+                      ${m.link ? `<a href="${safeUrl(m.link)}" target="_blank" rel="noopener noreferrer" title="Resource Link" onclick="event.stopPropagation()" style="color:var(--muted); transition:color 0.2s;" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='var(--muted)'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
                     </div>
                   </div>
                 </div>
@@ -592,10 +605,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="comment-avatar">${c.author_name ? c.author_name[0].toUpperCase() : 'U'}</div>
             <div class="comment-bubble">
               <div class="comment-header">
-                <span class="comment-author">${c.author_name}</span>
+                <span class="comment-author">${escapeHtml(c.author_name)}</span>
                 <span class="comment-date">${new Date(c.created_at).toLocaleString([], {hour: '2-digit', minute:'2-digit', month:'short', day:'numeric'})}</span>
               </div>
-              <div class="comment-text">${c.comment}</div>
+              <div class="comment-text">${escapeHtml(c.comment)}</div>
             </div>
           </div>
         `;
@@ -661,8 +674,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="file-list-item">
             ${getThumb(f)}
             <div class="file-info">
-              <a href="${f.file_path}" target="_blank" class="file-name">${f.original_name}</a>
-              <span class="file-meta">${new Date(f.created_at).toLocaleDateString()} · By ${f.uploader_name}</span>
+              <a href="${safeUrl(f.file_path)}" target="_blank" rel="noopener noreferrer" class="file-name">${escapeHtml(f.original_name)}</a>
+              <span class="file-meta">${new Date(f.created_at).toLocaleDateString()} · By ${escapeHtml(f.uploader_name)}</span>
             </div>
             ${isMyFile ? `
             <button class="btn-icon" style="color:#ef4444;" onclick="deleteProjectFile(${f.id}, ${id})">
@@ -692,8 +705,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="link-item">
             <div class="link-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
             <div class="link-title">
-              <a href="${l.url}" target="_blank" style="color:inherit; text-decoration:none;">${l.title}</a>
-              <div style="font-size:0.7rem; color:var(--muted); margin-top:2px;">Shared by ${l.creator_name || 'User'} (${isMyLink ? 'You' : l.creator_role})</div>
+              <a href="${safeUrl(l.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">${escapeHtml(l.title)}</a>
+              <div style="font-size:0.7rem; color:var(--muted); margin-top:2px;">Shared by ${escapeHtml(l.creator_name || 'User')} (${isMyLink ? 'You' : escapeHtml(l.creator_role)})</div>
             </div>
             ${isMyLink ? `
             <div class="link-actions">
