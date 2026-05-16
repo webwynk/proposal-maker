@@ -108,6 +108,16 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Request Logger for debugging
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api')) {
+    console.log(`[API Request] ${req.method} ${req.url}`);
+  }
+  next();
+});
+
+// Serve static files from public
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // File uploads will use memory storage for Supabase upload
