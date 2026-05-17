@@ -901,17 +901,8 @@ async function seedAdmin() {
   }
 }
 
-// Start server
-if (process.env.NODE_ENV !== 'production') {
-  seedAdmin().then(() => {
-    app.listen(PORT, () => {
-      console.log(`\n🚀 WebWynk CRM running at http://localhost:${PORT}`);
-      console.log(`   Admin Login: http://localhost:${PORT}/index.html`);
-    });
-  }).catch(console.error);
-} else {
-  seedAdmin().catch(console.error);
-}
+// Seed admin user on startup
+seedAdmin().catch(console.error);
 
 // ==================== NOTIFICATIONS ====================
 
