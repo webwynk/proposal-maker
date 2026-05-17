@@ -141,19 +141,34 @@ app.get('/', (req, res) => {
 // ==================== AUTH ROUTES ====================
 
 app.post('/api/login', loginRateLimiter, async (req, res) => {
-  const { email, password } = req.body;
-  if (!validateEmail(email) || !isNonEmptyString(password, 200)) {
-    return res.status(400).json({ error: 'Valid email and password are required' });
+  try {
+    const { email, password } = req.body;
+    if (!validateEmail(email) || !isNonEmptyString(password, 200)) {
+      return res.status(400).json({ error: 'Valid email and password are required' });
+    }
+
+    const { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
+    if (error || !user || !user.is_active) return res.status(401).json({ error: 'Invalid credentials or account deactivated' });
+
+    const validPassword = bcrypt.compareSync(password, user.password);
+    if (!validPassword) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const token = generateToken(user);
+    res.json({ token, user: { id: user.id, name: user.name, company: user.company, email: user.email, role: user.role } });
+  } catch (err) {
+    console.error('[Login Error]', err);
+    res.status(500).json({ error: 'Login failed due to a server error' });
   }
+});
 
-  const { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
-  if (error || !user || !user.is_active) return res.status(401).json({ error: 'Invalid credentials or account deactivated' });
-
-  const validPassword = bcrypt.compareSync(password, user.password);
-  if (!validPassword) return res.status(401).json({ error: 'Invalid credentials' });
-
-  const token = generateToken(user);
-  res.json({ token, user: { id: user.id, name: user.name, company: user.company, email: user.email, role: user.role } });
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    hasSupabaseConfig,
+    hasJwtSecret,
+    nodeEnv: process.env.NODE_ENV || 'unknown',
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.post('/api/change-password', authenticateToken, writeRateLimiter, async (req, res) => {
