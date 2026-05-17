@@ -965,7 +965,11 @@ app.use('/api', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('[Unhandled Error]', err);
   if (req.originalUrl && req.originalUrl.startsWith('/api')) {
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: err.message,
+      stack: err.stack
+    });
   }
   next(err);
 });
