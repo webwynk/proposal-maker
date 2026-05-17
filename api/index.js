@@ -100,9 +100,16 @@ const writeRateLimiter = makeRateLimiter({ windowMs: 60 * 1000, max: 120 });
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.length === 0) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-    return callback(new Error('CORS not allowed'));
+    if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+      return callback(null, true);
+    }
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    if (ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -965,11 +972,7 @@ app.use('/api', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('[Unhandled Error]', err);
   if (req.originalUrl && req.originalUrl.startsWith('/api')) {
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: err.message,
-      stack: err.stack
-    });
+    return res.status(500).json({ error: 'Internal server error' });
   }
   next(err);
 });
