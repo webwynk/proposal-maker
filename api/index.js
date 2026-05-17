@@ -142,15 +142,29 @@ app.get('/', (req, res) => {
 
 app.post('/api/login', loginRateLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
     if (!validateEmail(email) || !isNonEmptyString(password, 200)) {
       return res.status(400).json({ error: 'Valid email and password are required' });
     }
 
-    const { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
-    if (error || !user || !user.is_active) return res.status(401).json({ error: 'Invalid credentials or account deactivated' });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('email', normalizedEmail)
+      .maybeSingle();
 
-    const validPassword = bcrypt.compareSync(password, user.password);
+    if (error || !user || !user.is_active) return res.status(401).json({ error: 'Invalid credentials or account deactivated' });
+    if (!isNonEmptyString(user.password, 500)) return res.status(401).json({ error: 'Invalid credentials' });
+
+    let validPassword = false;
+    try {
+      validPassword = bcrypt.compareSync(password, user.password);
+    } catch (compareErr) {
+      console.error('[Login Compare Error]', compareErr);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
     if (!validPassword) return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = generateToken(user);
