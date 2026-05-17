@@ -7,7 +7,7 @@ const fs = require('fs');
 const multer = require('multer');
 require('dotenv').config();
 
-const { supabase } = require('../database');
+const { supabase, hasSupabaseConfig } = require('../database');
 const { generateToken, authenticateToken, requireAdmin, requireClient } = require('../auth');
 const { sendInvoiceEmail, sendProjectUpdateEmail, sendProposalEmail, sendMilestoneEmail } = require('../email');
 
@@ -18,6 +18,7 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
+const hasJwtSecret = Boolean(process.env.JWT_SECRET);
 
 function isNonEmptyString(value, max = 1000) {
   return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max;
@@ -108,6 +109,15 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use('/api', (req, res, next) => {
+  if (!hasSupabaseConfig || !hasJwtSecret) {
+    return res.status(503).json({
+      error: 'Server configuration is incomplete. Please set SUPABASE_URL, SUPABASE_KEY, and JWT_SECRET in Vercel environment variables.'
+    });
+  }
+  next();
+});
 
 // Request Logger for debugging
 app.use((req, res, next) => {
@@ -917,6 +927,18 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
 
   if (error) return res.status(500).json({ error: 'Failed to mark notification as read' });
   res.json({ message: 'Notification marked as read' });
+});
+
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `API route not found: ${req.method} ${req.originalUrl}` });
+});
+
+app.use((err, req, res, next) => {
+  console.error('[Unhandled Error]', err);
+  if (req.originalUrl && req.originalUrl.startsWith('/api')) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  next(err);
 });
 
 // ==================== ACTIVITY TIMELINE ====================
