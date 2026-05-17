@@ -53,7 +53,13 @@
           body: JSON.stringify({ email, password })
         });
 
-        const data = await response.json();
+        const raw = await response.text();
+        let data = null;
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          throw new Error('Login service returned an invalid response. Please try again in a moment.');
+        }
 
         if (!response.ok) {
           throw new Error(data.error || 'Login failed');
