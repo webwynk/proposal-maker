@@ -4,6 +4,7 @@
  * and runs it locally on the specified port.
  */
 
+const express = require('express');
 const app = require('./api/index');
 const PORT = process.env.PORT || 3000;
 
